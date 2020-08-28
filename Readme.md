@@ -16,8 +16,8 @@ Firmware powering the Amp smart lighting controller. Built on ESP-IDF 4.1.
 * USB-C charging
 * Serial port + programming over USB-C
 * 4 [Qwiic](https://www.sparkfun.com/qwiic) compatible I/O ports that can also be used as lighting output to
-* 8 channels of WS2812B (NeoPixels)
-* 4 channels of APA102 (DotStar)
+  * 8 channels of WS2812B (NeoPixels)
+  * 4 channels of APA102 (DotStar)
 
 ## Dependencies
 
