@@ -1,0 +1,12 @@
+[submodule "components/FastLED"]
+	path = components/FastLED
+	url = https://github.com/bbulkow/FastLED-idf
+[submodule "components/esp-nimble-cpp"]
+	path = components/esp-nimble-cpp
+	url = https://github.com/intentfulmotion/esp-nimble-cpp
+[submodule "components/FastLED-idf"]
+	path = components/FastLED-idf
+	url = https://github.com/intentfulmotion/FastLED-idf
+[submodule "components/lis3dh"]
+	path = components/lis3dh
+	url = https://github.com/intentfulmotion/lis3dh-esp-idf

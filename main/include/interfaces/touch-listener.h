@@ -1,0 +1,15 @@
+#pragma once
+#include <vector>
+#include <models/touch-type.h>
+
+class TouchListener {
+  public:
+    QueueHandle_t touchQueue = NULL;
+    QueueHandle_t touchEventQueue = NULL;
+};
+
+class TouchTaskListener {
+  public:
+    virtual void onTouchDown();
+    virtual void onTouchUp();
+};

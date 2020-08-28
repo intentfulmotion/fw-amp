@@ -1,0 +1,91 @@
+{
+	"preferences": {
+		"turnFlashRate": 200,
+		"brakeFlashRate": 100,
+		"renderer": 0
+	},
+	"motion": {
+		"autoOrientation": false,
+		"autoMotion": true,
+		"autoTurn": false,
+		"brakeAxis": 5,
+		"brakeThreshold": 0.1,
+		"orientationAxis": 2,
+		"orientationUpMin": 70,
+		"orientationUpMax": 110
+	},
+	"lights": {
+		"channels": [
+			{
+				"channel": 1,
+				"leds": 10,
+				"type": 0
+			},
+			{
+				"channel": 2,
+				"leds": 10,
+				"type": 0
+			},
+			{
+				"channel": 3,
+				"leds": 10,
+				"type": 0
+			},
+			{
+				"channel": 4,
+				"leds": 10,
+				"type": 0
+			}
+		],
+		"regions": {
+			"headlight": [
+        {
+          "channel": 1,
+          "start": 1,
+          "end": 10
+        },
+        {
+          "channel": 4,
+          "start": 1,
+          "end": 10
+        }
+			],			
+			"left": [
+        {
+					"channel": 1,
+					"start": 1,
+					"end": 10
+				},
+				{
+					"channel": 2,
+					"start": 1,
+					"end": 10
+				}
+			],
+			"right": [
+        {
+					"channel": 3,
+					"start": 1,
+					"end": 10
+				},
+				{
+					"channel": 4,
+					"start": 1,
+					"end": 10
+				}
+			],
+			"brake": [
+				{
+					"channel": 2,
+					"start": 1,
+					"end": 10
+				},
+				{
+					"channel": 3,
+					"start": 1,
+					"end": 10
+				}
+			]
+		}
+	}
+}
