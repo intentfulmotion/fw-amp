@@ -35,6 +35,6 @@ idf_component_register(
     "include/services/"
     "libraries/ArduinoJSON/"
 
-  REQUIRES lis3dh bt spi_flash soc efuse nvs_flash esp-nimble-cpp FastLED esp_adc_cal
+  REQUIRES lis3dh bt spi_flash soc efuse nvs_flash esp-nimble-cpp FastLED-idf esp_adc_cal
   PRIV_REQUIRES app_update fatfs freertos spiffs soc efuse
 )
