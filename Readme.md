@@ -21,9 +21,9 @@ Firmware powering the Amp smart lighting controller. Built on ESP-IDF 4.1.
 
 ## Dependencies
 
-* esp-nimble-cpp (https://github.com/intentfulmotion/esp-nimble-cpp) - modified version of https://github.com/h2zero/esp-nimble-cpp
-* FastLED-idf (https://github.com/bbulkow/FastLED-idf)
-* lis3dh-espidf (https://github.com/intentfulmotion/lis3dh-esp-idf) - modified version of https://github.com/gschorcht/lis3dh-esp-idf
+* [esp-nimble-cpp](https://github.com/intentfulmotion/esp-nimble-cpp) - modified version of https://github.com/h2zero/esp-nimble-cpp
+* [FastLED-idf](https://github.com/intentfulmotion/FastLED-idf) - modified version of https://github.com/bbulkow/FastLED-idf
+* [lis3dh-esp-idf](https://github.com/intentfulmotion/lis3dh-esp-idf) - modified version of https://github.com/gschorcht/lis3dh-esp-idf
 
 ## Build from source
 
