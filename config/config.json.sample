@@ -3,8 +3,7 @@
 		"turnFlashRate": 200,
 		"brakeFlashRate": 100,
 		"brakeDuration": 1500,
-		"lightMode": 0,
-		"renderer": "#008081",
+		"renderer": 0,
 	},
 	"motion": {
 		"autoOrientation": false,

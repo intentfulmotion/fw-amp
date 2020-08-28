@@ -3,9 +3,7 @@
 		"turnFlashRate": 200,
 		"brakeFlashRate": 100,
 		"brakeDuration": 1500,
-		"lightMode": 0,
-		"fadeColor": "#008081",
-		"declination": -4.81
+		"renderer": 0		
 	},
 	"motion": {
 		"autoOrientation": false,
