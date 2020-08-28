@@ -1,4 +1,4 @@
-#include <aapp.h>
+#include <app.h>
 #include <models/light.h>
 
 Amp* App::amp = nullptr;
