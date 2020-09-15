@@ -10,7 +10,7 @@ Firmware powering the Amp smart lighting controller. Built on ESP-IDF 4.1.
 * 5 alternative lighting modes (rainbows, theater chase lights, etc.)
 
 ## Specs
-* ESP32 WROOM32 Rev3 dual core Xtensa processor running at 80 Mhz (can be clocked up to 240 Mhz)
+* ESP32 WROOM32E dual core Xtensa processor running at 80 Mhz (can be clocked up to 240 Mhz)
 * LIS3DH12 high performance, 3 axis accelerometer
 * Up to 2A of regulated 3.3V power from a 2000 mAh Li-Po battery
 * USB-C charging
