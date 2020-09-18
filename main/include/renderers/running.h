@@ -11,12 +11,14 @@ class RunningRenderer : public Renderer {
   FreeRTOS::Semaphore brakeInit;
   FreeRTOS::Semaphore turnInit;
 
-  Color brightHeadlight = Color(255, 255, 255);
-  Color runningHeadlight = Color(127, 127, 127);
-  Color brightBrake = Color(255, 0, 0);
-  Color runningBrake = Color(127, 0, 0);
-  Color turn = Color(127, 127, 0);
+  ColorRGB brightHeadlight = ColorRGB(255, 255, 255);
+  ColorRGB runningHeadlight = ColorRGB(127, 127, 127);
+  ColorRGB brightBrake = ColorRGB(255, 0, 0);
+  ColorRGB runningBrake = ColorRGB(127, 0, 0);
+  ColorRGB turn = ColorRGB(127, 127, 0);
 
+  ColorRGBW extendedBrightHeadlight = ColorRGBW(0, 0, 0, 255);
+  ColorRGBW extendedRunningHeadlight = ColorRGBW(0, 0, 0, 127);
 
   public:
     RunningRenderer(Lights *lights, AmpConfig *config);

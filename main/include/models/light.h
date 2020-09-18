@@ -5,10 +5,21 @@
 #include <string>
 #include <map>
 
+enum StripType : uint8_t {
+  NeoPixel_GRB = 0,
+  NeoPixel_GRBW,
+  NeoPixel_RGB,
+  NeoPixel_RGBW,
+  DotStar_BGR,
+  DotStar_LBGR,
+  DotStar_GRB,
+  DotStar_LGRB
+};
+
 struct LightChannel {
   uint8_t channel;
   uint16_t leds;
-  uint8_t type;
+  StripType type;
 };
 
 struct LightSection {

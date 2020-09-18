@@ -4,6 +4,7 @@ lis3dh_sensor_t* AmpIMU::sensor = NULL;
 
 AmpIMU::AmpIMU() {
   spi_bus_init(VSPI_HOST, IMU_CLK, IMU_MISO, IMU_MOSI);
+  // vspi.begin(IMU_MOSI, IMU_MISO, IMU_CLK, 0);
 }
 
 uint8_t AmpIMU::init() {

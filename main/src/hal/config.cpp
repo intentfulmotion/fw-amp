@@ -131,7 +131,7 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
     LightChannel ch;
     ch.channel = channel["channel"].as<uint8_t>();
     ch.leds = channel["leds"].as<uint16_t>();
-    ch.type = channel["type"].as<uint8_t>();
+    ch.type = channel["type"].as<StripType>();
     channels[ch.channel] = ch;
   }
 

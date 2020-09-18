@@ -3,7 +3,7 @@
 #define AMP_1_0_x
 #define AMP_LOG_LEVEL AMP_LOG_LEVEL_VERBOSE
 
-#define FIRMWARE_VERSION    "1.0.0"
+#define FIRMWARE_VERSION    "1.1.0"
 #define COPYRIGHT_YEAR      2020
 
 // Status LED
@@ -35,22 +35,22 @@
 #define IMU_CS              GPIO_NUM_5
 #define BLE_ENABLED
 
-#define FASTLED_ESP32_I2S true
-#include <FastLED.h>
-#define Color CRGB
-#define LightController CLEDController
+#include <NeoPixelBus.h>
+#define ColorRGB RgbColor
+#define ColorRGBW RgbwColor
 
 #define IO_PIN_SELECT(x)  (1ULL<<x)
 
-static const Color ampPink(255, 33, 125);
-static const Color ampPurple(134, 23, 237);
-static const Color ampOrange(240, 109, 0);
-static const Color lightOff(0, 0, 0);
-static const Color updateStart(0, 0, 127);
-static const Color updateProgress(0, 127, 0);
-static const Color updateEnd(127, 127, 0);
-static const Color updateError(127, 0, 0);
+static const ColorRGB ampPink(255, 33, 125);
+static const ColorRGB ampPurple(134, 23, 237);
+static const ColorRGB ampOrange(240, 109, 0);
+static const ColorRGB lightOff(0, 0, 0);
+static const ColorRGB updateStart(0, 0, 127);
+static const ColorRGB updateProgress(0, 127, 0);
+static const ColorRGB updateEnd(127, 127, 0);
+static const ColorRGB updateError(127, 0, 0);
 
+#include "esp32-hal.h"
 #include <stdint.h>
 #include <memory>
 #include <iostream>
@@ -58,8 +58,6 @@ static const Color updateError(127, 0, 0);
 #include <cstdio>
 #include <log.h>
 #include "esp_task_wdt.h"
-
-#define PI 3.1415926535897932384626433832795
 
 #define BOOT_NORMAL 1
 #define BOOT_OTA 2
@@ -70,23 +68,6 @@ static const Color updateError(127, 0, 0);
 
 #define DEFAULT_ORIENTATION_UP_MIN 70   // degrees
 #define DEFAULT_ORIENTATION_UP_MAX 110  // degrees
-
-inline Color hexStringToColor(std::string fadeColorText) {
-  size_t pos = fadeColorText.find_first_of('#');
-  if (pos != std::string::npos)
-    fadeColorText.erase(pos, 1);
-
-  if (fadeColorText.length() == 6) {
-    uint r; uint g; uint b;
-    sscanf(fadeColorText.substr(0, 2).c_str(), "%02X", &r);
-    sscanf(fadeColorText.substr(2, 4).c_str(), "%02X", &g);
-    sscanf(fadeColorText.substr(4, 6).c_str(), "%02X", &b);
-    ESP_LOGD("Fade Color", "%d, %d, %d", r, g, b);
-    return Color(static_cast<uint8_t>(r), static_cast<uint8_t>(g), static_cast<uint8_t>(b));
-  }
-  else
-    return lightOff;
-}
 
 template<typename ... Args>
 inline std::string string_format( const std::string& format, Args ... args )

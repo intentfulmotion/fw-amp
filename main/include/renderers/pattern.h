@@ -17,11 +17,11 @@ class PatternRenderer : public LoopingRenderer {
 
     void process();
 
-    void allColor(Color color);
+    void allColorRGB(ColorRGB color);
     void allRandom();
     void dissolve(int simultaneous, int cycles, int speed);
     void rainbow(int cycles, int speed);
-    void theaterChase(Color c, int cycles, int speed);
+    void theaterChase(ColorRGB c, int cycles, int speed);
     void theaterChaseRainbow(int cycles, int speed);
     void lightning(int simultaneous, int cycles, int speed);
 };

@@ -123,20 +123,20 @@ void Lights::updateLightForPowerStatus(PowerStatus status) {
         Log::verbose("Setting to orange charging light");
       }
       else {
-        leds.setStatus(Color(0, 127, 0));
+        leds.setStatus(ColorRGB(0, 127, 0));
         Log::verbose("Setting to green charged light");
       }
     }
     else {
       switch (status.level) {
         case PowerLevel::Critical:
-          leds.setStatus(Color(127, 0, 0));
+          leds.setStatus(ColorRGB(127, 0, 0));
           leds.setBrightness(60);
           safeToLight = false;
           Log::verbose("Setting to red critical light");
           break;
         case PowerLevel::Low:
-          leds.setStatus(Color(127, 127, 0));
+          leds.setStatus(ColorRGB(127, 127, 0));
           leds.setBrightness(127);
           safeToLight = true;
           Log::verbose("Setting to yellow low light");
@@ -157,7 +157,7 @@ void Lights::updateLightForPowerStatus(PowerStatus status) {
   }
 }
 
-void Lights::setStatus(Color color) {
+void Lights::setStatus(ColorRGB color) {
   leds.setStatus(color);
 }
 
@@ -195,7 +195,7 @@ std::map<std::string, LightRegion> Lights::getAvailableRegions() {
   return lightsConfig->regions;
 }
 
-void Lights::colorRegion(std::string region, Color color) {
+void Lights::colorRegion(std::string region, ColorRGB color, ColorRGBW colorExtended) {
   auto result = lightsConfig->regions.find(region);
 
   if (result != lightsConfig->regions.end()) {
@@ -203,30 +203,35 @@ void Lights::colorRegion(std::string region, Color color) {
 
     auto region = result->second;
     for (auto section : region.sections) {
-      //Log::verbose("Color section: %d (%d - %d) -> RGB(%d, %d, %d)", section.channel, section.start, section.end, color.red, color.green, color.blue);
-      colorLEDs(section.channel, section.start, section.end, color);
+      //Log::verbose("ColorRGB section: %d (%d - %d) -> RGB(%d, %d, %d)", section.channel, section.start, section.end, color.red, color.green, color.blue);
+      colorLEDs(section.channel, section.start, section.end, color, colorExtended);
     }
   }
 }
 
-void Lights::colorRegionSection(std::string region, uint8_t sectionIndex, Color color) {
+void Lights::colorRegionSection(std::string region, uint8_t sectionIndex, ColorRGB color, ColorRGBW colorExtended) {
   auto result = lightsConfig->regions.find(region);
 
   if (result != lightsConfig->regions.end()) {
     auto region = result->second;
     if (sectionIndex < region.sections.size()) {
       auto section = region.sections[sectionIndex];
-      colorLEDs(section.channel, section.start, section.end, color);
+      colorLEDs(section.channel, section.start, section.end, color, colorExtended);
     }
   }
 }
 
-void Lights::colorLEDs(uint8_t channel, uint16_t start, uint16_t end, Color color) {
-  //Log::verbose("Color section: %d (%d - %d)", channel, start, end);
-  auto corrected = leds.gammaCorrected(color);
+void Lights::colorLEDs(uint8_t channel, uint16_t start, uint16_t end, ColorRGB color, ColorRGBW colorExtended) {
+  //Log::verbose("ColorRGB section: %d (%d - %d)", channel, start, end);
+  if (colorExtended == NULL)
+    colorExtended = ColorRGBW(color);
+
+  auto size = channelMap[channel]->PixelSize();
+  bool hasThreeLeds = size == 3;
+  auto corrected = hasThreeLeds ? leds.gammaCorrected(color) : leds.gammaCorrectedRGBW(colorExtended);
 
   for (uint16_t i = start - 1; i < end; i++)
-    (*channelMap[channel])[i] = corrected;
+    channelMap[channel]->SetPixelColor(i, corrected);
 }
 
 void Lights::render() {
@@ -268,7 +273,7 @@ void Lights::onCalibrateMagEnded() {
 
 void Lights::startCalibrateLight(void* params) {
   Lights* lights = (Lights*)params;
-  auto color = lights->calibratingXG ? Color(127, 127, 0) : Color(0, 127, 127);
+  auto color = lights->calibratingXG ? ColorRGB(127, 127, 0) : ColorRGB(0, 127, 127);
 
   for (;;) {
     lights->setStatus(color);
@@ -296,7 +301,7 @@ void Lights::startUpdateLight(void* params) {
 
 void Lights::startAdvertisingLight(void* params) {
   Lights* lights = (Lights*)params;
-  auto color = Color(0, 0, 127);
+  auto color = ColorRGB(0, 0, 127);
 
   for (;;) {
     lights->setStatus(color);
@@ -310,20 +315,20 @@ void Lights::startAdvertisingLight(void* params) {
 
 // Input a value 0 to 255 to get a color value.
 // The colours are a transition r - g - b - back to r.
-Color Lights::Wheel(uint8_t WheelPos) {
+ColorRGB Lights::Wheel(uint8_t WheelPos) {
   if(WheelPos < 85)
-    return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+    return ColorRGB(WheelPos * 3, 255 - WheelPos * 3, 0);
   else if(WheelPos < 170) {
     WheelPos -= 85;
-    return Color(255 - WheelPos * 3, 0, WheelPos * 3);
+    return ColorRGB(255 - WheelPos * 3, 0, WheelPos * 3);
   } 
   else {
     WheelPos -= 170;
-    return Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    return ColorRGB(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
 
-Color Lights::randomColor() {
+ColorRGB Lights::randomColorRGB() {
   return Wheel(rand() % 256); 
 }
 

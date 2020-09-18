@@ -79,15 +79,15 @@ class Lights : public LifecycleBase,
     std::map<uint8_t, LightChannel> getAvailableChannels();
     std::map<std::string, LightRegion> getAvailableRegions();
 
-    void setStatus(Color color);
+    void setStatus(ColorRGB color);
 
-    void colorRegion(std::string region, Color color);
-    void colorRegionSection(std::string region, uint8_t section, Color color);
-    void colorLEDs(uint8_t channel, uint16_t led, uint16_t count, Color color);
+    void colorRegion(std::string region, ColorRGB color, ColorRGBW extendedColor = NULL);
+    void colorRegionSection(std::string region, uint8_t section, ColorRGB color, ColorRGBW extendedColor = NULL);
+    void colorLEDs(uint8_t channel, uint16_t led, uint16_t count, ColorRGB color, ColorRGBW extendedColor = NULL);
     void render();
 
-    Color Wheel(uint8_t pos);
-    Color randomColor();
+    ColorRGB Wheel(uint8_t pos);
+    ColorRGB randomColorRGB();
 
     static void startCalibrateLight(void* params);
     static void startUpdateLight(void *params);

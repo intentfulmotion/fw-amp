@@ -113,10 +113,10 @@ void RunningRenderer::setTurnLights(LightCommand command) {
 void RunningRenderer::setHeadlight(LightCommand command) {
   switch (command) {
     case LightCommand::LightsRunning:
-      _lights->colorRegion("headlight", runningHeadlight);
+      _lights->colorRegion("headlight", runningHeadlight, extendedRunningHeadlight);
       break;
     case LightCommand::LightsBright:
-      _lights->colorRegion("headlight", brightHeadlight);
+      _lights->colorRegion("headlight", brightHeadlight, extendedBrightHeadlight);
       break;
     case LightCommand::LightsReset:
       setHeadlight(_headlightCommand);
@@ -185,8 +185,8 @@ void RunningRenderer::turnFunction(void *args) {
 
   bool high = true;
   for (;;) {
-    Color firstHalf = high ? renderer->turn : lightOff;
-    Color secondHalf = high ? lightOff : renderer->turn;
+    ColorRGB firstHalf = high ? renderer->turn : lightOff;
+    ColorRGB secondHalf = high ? lightOff : renderer->turn;
 
     // reapply base lights for cases where indicators are the same as brake / headlights
     renderer->setBrakes(LightCommand::LightsReset);
