@@ -61,7 +61,7 @@ std::string AmpStorage::readFile(std::string filename) {
   FILE* file = fopen(filename.c_str(), "r");
 
   if (file == NULL) {
-    Log::error("Could not open file: %s", filename.c_str());
+    ESP_LOGE(STORAGE_TAG,"Could not open file: %s", filename.c_str());
     return "";
   }
 
@@ -121,7 +121,7 @@ float AmpStorage::getFloat(const char *key, float defaultValue) {
   nvs_close(handle);
 
   if (err != ESP_OK) {
-    Log::warning("Unable to get %s from NVS", key);
+    ESP_LOGW(STORAGE_TAG,"Unable to get %s from NVS", key);
     return defaultValue;
   }
 
@@ -150,5 +150,5 @@ void AmpStorage::saveFloat(const char* key, float value) {
   nvs_close(handle);
   
   if (err != ESP_OK)
-    Log::warning("Unable to save %s to NVS", key);
+    ESP_LOGW(STORAGE_TAG,"Unable to save %s to NVS", key);
 }

@@ -5,6 +5,8 @@
 #include <vector>
 #include "interfaces/update-listener.h"
 
+static const char* UPDATER_TAG = "ota";
+
 class Updater {
   std::vector<UpdateListener*> updateListeners;
   UpdateStatus status;

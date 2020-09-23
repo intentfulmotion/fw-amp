@@ -5,6 +5,8 @@
 #include <NimBLEService.h>
 #include <constants.h>
 
+static const char* UPDATE_SERVICE_TAG = "update-service";
+
 class UpdateService : public NimBLECharacteristicCallbacks, public UpdateListener {
   Updater *_updater;
   NimBLEServer *_server;

@@ -85,7 +85,7 @@ void BluetoothLE::startAdvertising() {
 void BluetoothLE::updateAdvertising(std::string name, bool publicAdvertise) {
   advertising->stop();
 
-  Log::trace("Updating advertising - name: %s, %s", name.c_str(), publicAdvertise ? "public" : "private");
+  ESP_LOGD(BLE_TAG,"Updating advertising - name: %s, %s", name.c_str(), publicAdvertise ? "public" : "private");
   NimBLEAdvertisementData data;
   data.setCompleteServices(NimBLEUUID::fromString(vehicleServiceUUID));
   data.setFlags(publicAdvertise ? BLE_HS_ADV_F_DISC_GEN : BLE_HS_ADV_F_DISC_LTD);

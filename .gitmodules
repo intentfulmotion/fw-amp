@@ -4,6 +4,6 @@
 [submodule "components/lis3dh"]
 	path = components/lis3dh
 	url = https://github.com/intentfulmotion/lis3dh-esp-idf
-[submodule "components/FastLED-idf"]
-	path = components/FastLED-idf
-	url = https://github.com/intentfulmotion/FastLED-idf
+[submodule "components/AddressableLED"]
+	path = components/AddressableLED
+	url = https://github.com/intentfulmotion/AddressableLED.git

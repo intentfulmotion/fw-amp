@@ -18,6 +18,8 @@
 #include <renderers/running.h>
 #include <renderers/pattern.h>
 
+static const char* APP_TAG = "app";
+
 class App : public LifecycleBase, public ConfigListener, public MotionListener, public RenderHost {
   TaskHandle_t *renderHostHandle = NULL;
   static Amp *amp;

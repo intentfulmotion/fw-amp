@@ -4,17 +4,17 @@ AmpConfig Config::ampConfig;
 
 void Config::onPowerUp() {
   if (!ampStorage.init()) {
-    Log::fatal("Unable to mount filsystem");
+    ESP_LOGE(CONFIG_TAG,"Unable to mount filsystem");
     _filesystemError = true;
   }
 
   ampConfig.info = getDeviceInfo();
   
-  Log::notice("Amp %s", ampConfig.info.hardwareVersion.c_str());
-  Log::notice("Firmware: %s", ampConfig.info.firmwareVersion.c_str());
-  Log::notice("Serial Number: %s", ampConfig.info.serialNumber.c_str());
-  Log::notice("Copyright %d %s", COPYRIGHT_YEAR, ampConfig.info.manufacturer.c_str());
-  Log::notice("IDF version: %s", esp_get_idf_version());
+  ESP_LOGI(CONFIG_TAG,"Amp %s", ampConfig.info.hardwareVersion.c_str());
+  ESP_LOGI(CONFIG_TAG,"Firmware: %s", ampConfig.info.firmwareVersion.c_str());
+  ESP_LOGI(CONFIG_TAG,"Serial Number: %s", ampConfig.info.serialNumber.c_str());
+  ESP_LOGI(CONFIG_TAG,"Copyright %d %s", COPYRIGHT_YEAR, ampConfig.info.manufacturer.c_str());
+  ESP_LOGI(CONFIG_TAG,"IDF version: %s", esp_get_idf_version());
 
   loadConfigFile();
 }
@@ -35,7 +35,7 @@ bool Config::loadConfigFile() {
     return loadConfig(rawConfig);
   }
   else {
-    Log::error("Cannot load config due to error with filesystem.");
+    ESP_LOGE(CONFIG_TAG,"Cannot load config due to error with filesystem.");
     return false;
   }
 }
@@ -44,11 +44,11 @@ void Config::saveConfig() {
   auto file = ampStorage.writeFile(configPath);
 
   if (!file) {
-    Log::error("Could not open file: %s", configPath.c_str());
+    ESP_LOGE(CONFIG_TAG,"Could not open file: %s", configPath.c_str());
     return;
   }
 
-  Log::trace("Writing config to file");
+  ESP_LOGD(CONFIG_TAG,"Writing config to file");
   char buffer[1024];
   auto size = serializeMsgPack(document.as<JsonObject>(), buffer);
 
@@ -62,7 +62,7 @@ bool Config::loadConfig(std::string msgPackData) {
   // load MessagePack document
   auto err = deserializeMsgPack(document, msgPackData.c_str());
   if (err) {
-    Log::error("deserializeMsgPack failed: %s", err.c_str());
+    ESP_LOGE(CONFIG_TAG,"deserializeMsgPack failed: %s", err.c_str());
     _valid = false;
     return _valid;
   }
@@ -79,7 +79,7 @@ bool Config::loadConfig(std::string msgPackData) {
   loadMotionConfig(motionJson);
 
   rawConfig = msgPackData;
-  Log::trace("Loaded configuration");
+  ESP_LOGD(CONFIG_TAG,"Loaded configuration");
   _valid = true;
 
   for (auto listener : configListeners)
@@ -111,12 +111,12 @@ void Config::loadMotionConfig(JsonObject motionJson) {
   uint8_t orientationAxis = (AttitudeAxis)(motionJson["orientationAxis"].as<uint8_t>()) | AttitudeAxis::Pitch;
   config.orientationAxis = (AttitudeAxis)orientationAxis;
 
-  Log::verbose("auto orientation config: %s", config.autoOrientation ? "true" : "false");
-  Log::verbose("auto motion config: %s", config.autoMotion ? "true" : "false");
-  Log::verbose("auto turn config: %s", config.autoTurn ? "true" : "false");
+  ESP_LOGV(CONFIG_TAG,"auto orientation config: %s", config.autoOrientation ? "true" : "false");
+  ESP_LOGV(CONFIG_TAG,"auto motion config: %s", config.autoMotion ? "true" : "false");
+  ESP_LOGV(CONFIG_TAG,"auto turn config: %s", config.autoTurn ? "true" : "false");
 
-  Log::verbose("brake axis: %d threshold: %F", config.brakeAxis, config.brakeThreshold);
-  Log::verbose("turn axis: %d threshold: %F", config.turnAxis, config.turnThreshold);
+  ESP_LOGV(CONFIG_TAG,"brake axis: %d threshold: %F", config.brakeAxis, config.brakeThreshold);
+  ESP_LOGV(CONFIG_TAG,"turn axis: %d threshold: %F", config.turnAxis, config.turnThreshold);
 
   ampConfig.motion = config;
 }
@@ -131,7 +131,7 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
     LightChannel ch;
     ch.channel = channel["channel"].as<uint8_t>();
     ch.leds = channel["leds"].as<uint16_t>();
-    ch.type = channel["type"].as<uint8_t>();
+    ch.type = channel["type"].as<LEDType>();
     channels[ch.channel] = ch;
   }
 
@@ -185,7 +185,7 @@ void Config::loadPrefsConfig(JsonObject prefsJson) {
   else
     prefsConfig.deviceName = prefsJson["name"].as<std::string>();
 
-  Log::verbose("Device Name: %s", prefsConfig.deviceName.c_str());
+  ESP_LOGV(CONFIG_TAG,"Device Name: %s", prefsConfig.deviceName.c_str());
   prefsConfig.turnFlashRate = prefsJson["turnFlashRate"] | 200;
   prefsConfig.brakeFlashRate = prefsJson["brakeFlashRate"] | 100;
   prefsConfig.brakeDuration = prefsJson["brakeDuration"] | 1500;
@@ -200,7 +200,7 @@ std::string Config::readFile(std::string filename) {
   if (!_filesystemError)
     return ampStorage.readFile(filename);
   
-  Log::error("Unable to read file due to filesystem error");
+  ESP_LOGE(CONFIG_TAG,"Unable to read file due to filesystem error");
   return "";
 }
 

@@ -18,6 +18,8 @@
 
 #include <hal/config.h>
 
+static const char* LIGHTS_TAG = "lights";
+
 class Lights : public LifecycleBase,
   public PowerListener, public TouchListener, public ConfigListener, 
   public CalibrationListener, public UpdateListener, public BleListener {
@@ -40,7 +42,7 @@ class Lights : public LifecycleBase,
 
   public:
     Lights();
-    std::map<int, LightController*> channelMap;
+    std::map<int, LightController*> controllers;
     static Lights* instance() { static Lights lights; return &lights; }
     
     // LifecycleBase
@@ -84,7 +86,7 @@ class Lights : public LifecycleBase,
     void colorRegion(std::string region, Color color);
     void colorRegionSection(std::string region, uint8_t section, Color color);
     void colorLEDs(uint8_t channel, uint16_t led, uint16_t count, Color color);
-    void render();
+    void render(bool all = false, int8_t channel = -1);
 
     Color Wheel(uint8_t pos);
     Color randomColor();

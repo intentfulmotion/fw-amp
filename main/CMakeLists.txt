@@ -22,7 +22,6 @@ idf_component_register(
     "src/app.cpp"
     "src/amp.cpp"
     "src/constants.cpp"
-    "src/log.cpp"
     "src/main.cpp"
 
   INCLUDE_DIRS 
@@ -35,6 +34,6 @@ idf_component_register(
     "include/services/"
     "libraries/ArduinoJSON/"
 
-  REQUIRES lis3dh bt spi_flash soc efuse nvs_flash esp-nimble-cpp FastLED-idf esp_adc_cal
+  REQUIRES lis3dh bt spi_flash soc efuse nvs_flash esp-nimble-cpp esp_adc_cal AddressableLED
   PRIV_REQUIRES app_update fatfs freertos spiffs soc efuse
 )

@@ -11,6 +11,8 @@
 #include <esp_spiffs.h>
 #include <models/motion.h>
 
+static const char* STORAGE_TAG = "storage";
+
 class AmpStorage {
   static const char* storage;
   static esp_vfs_spiffs_conf_t conf;
@@ -34,5 +36,5 @@ class AmpStorage {
     static void getAccelBias(Vector3D *bias);
 
     static void saveFloat(const char* key, float value);
-    static float getFloat(const char* key, float defaultValue = NAN);
+    static float getFloat(const char* key, float defaultValue = 0);
 };

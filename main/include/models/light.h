@@ -8,7 +8,7 @@
 struct LightChannel {
   uint8_t channel;
   uint16_t leds;
-  uint8_t type;
+  LEDType type;
 };
 
 struct LightSection {

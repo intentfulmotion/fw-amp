@@ -46,7 +46,7 @@ void App::onPowerUp() {
 }
 
 void App::onPowerDown() {
-  Log::trace("App power down");
+  ESP_LOGD(APP_TAG,"App power down");
 
   if (renderHostHandle != NULL) {
     vTaskDelete(renderHostHandle);
@@ -61,7 +61,7 @@ void App::onConfigUpdated() {
   config = &Config::ampConfig;
 
   // start new render host
-  Log::trace("Renderer starting after config update");
+  ESP_LOGD(APP_TAG,"Renderer starting after config update");
   setLightMode(config->prefs.renderer);
 }
 
@@ -114,7 +114,7 @@ void App::process() {
 }
 
 void App::onAccelerationStateChanged(AccelerationState state) {
-  // Log::trace("on acceleration state changed");
+  // ESP_LOGD(APP_TAG,"on acceleration state changed");
   if (renderer != NULL) {
     LightCommand command;
 

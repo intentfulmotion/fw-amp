@@ -5,6 +5,9 @@
 
 #include <models/light.h>
 
+#include <OneWireLED.h>
+#include <TwoWireLED.h>
+
 const uint8_t gamma8[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
@@ -23,20 +26,13 @@ const uint8_t gamma8[] = {
   177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
   215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
 
-class AmpLeds {
-  Color statusData[1];
-  Color *channelOneData;
-  Color *channelTwoData;
-  Color *channelThreeData;
-  Color *channelFourData;
-  Color *channelFiveData;
-  Color *channelSixData;
-  Color *channelSevenData;
-  Color *channelEightData;
+static const char* LEDS_TAG = "leds";
 
+class AmpLeds {
   LightController* status;
   std::map<uint8_t, LightController*> channels;
   std::map<uint8_t, uint16_t> leds;
+  // std::map<uint8_t, bool> dirty;
 
   std::map<uint8_t, uint8_t> lightMap {
     std::make_pair(1, STRIP_ONE_DATA),
@@ -51,6 +47,7 @@ class AmpLeds {
   };
 
   uint8_t _brightness = 255;
+  // bool statusDirty = false;
   bool dirty;
 
   public:
@@ -58,9 +55,12 @@ class AmpLeds {
     void deinit();
     void process();
     void setStatus(Color color);
-    void render();
+    void render(bool all = false, int8_t channel = -1);
     Color gammaCorrected(Color color);
-    void setBrightness(uint8_t brightness) { _brightness = brightness; FastLED.setBrightness(_brightness); }
+    void setBrightness(uint8_t brightness) { _brightness = brightness; /*FastLED.setBrightness(_brightness);*/ }
+
+    void setPixel(uint8_t channelNumber, Color color, uint16_t index);
+    void setPixels(uint8_t channelNumber, Color color, uint16_t start, uint16_t end);
 
     LightController* addLEDStrip(LightChannel data);
 };
