@@ -1,5 +1,24 @@
 #include <hal/lights.h>
 
+std::map<LightCommand, std::string> Lights::headlightActions = {
+  std::make_pair(LightCommand::LightsOff, "headlight-off"),
+  std::make_pair(LightCommand::LightsHeadlightNormal, "headlight-normal"),
+  std::make_pair(LightCommand::LightsHeadlightBright, "headlight-bright")
+};
+
+std::map<LightCommand, std::string> Lights::brakeActions = {
+  std::make_pair(LightCommand::LightsOff, "brake-off"),
+  std::make_pair(LightCommand::LightsBrakeNormal, "brake-normal"),
+  std::make_pair(LightCommand::LightsBrakeActive, "brake-active")
+};
+
+std::map<LightCommand, std::string> Lights::turnActions = {
+  std::make_pair(LightCommand::LightsOff, "turn-center"),
+  std::make_pair(LightCommand::LightsHeadlightNormal, "turn-left"),
+  std::make_pair(LightCommand::LightsHeadlightBright, "turn-right"),
+  std::make_pair(LightCommand::LightsTurnHazard, "turn-hazard")
+};
+
 Lights::Lights() {
   touchQueue = xQueueCreate(2, sizeof(bool));
   calibrateXGQueue = xQueueCreate(1, sizeof(CalibrationState));
@@ -12,6 +31,7 @@ Lights::Lights() {
 
 void Lights::onPowerUp() {
   leds.init();
+  xTaskCreatePinnedToCore(renderer, "renderer", 4096, NULL, 3, &renderHandle, 1);
   ESP_LOGD(LIGHTS_TAG,"Lights started");
 }
 
@@ -195,36 +215,28 @@ std::map<std::string, LightRegion> Lights::getAvailableRegions() {
   return lightsConfig->regions;
 }
 
-void Lights::colorRegion(std::string region, ColorRGB color, ColorRGBW colorExtended) {
-  auto result = lightsConfig->regions.find(region);
+void Lights::colorRegion(std::string regionName, Color color) {
+  auto region = lightsConfig->regions[regionName];
 
-  if (result != lightsConfig->regions.end()) {
-    ESP_LOGV(LIGHTS_TAG,"Found region: %s", region.c_str());
-
-    auto region = result->second;
-    for (auto section : region.sections) {
-      ESP_LOGV(LIGHTS_TAG,"Color section: %d (%d - %d) -> RGB(%d, %d, %d)", section.channel, section.start, section.end, color.r, color.g, color.b);
-      colorLEDs(section.channel, section.start, section.end, color);
-    }
+  for (auto section : region.sections) {
+    ESP_LOGV(LIGHTS_TAG,"Color section: %d (%d - %d) -> RGB(%d, %d, %d)", section.channel, section.start, section.end, color.r, color.g, color.b);
+    colorLEDs(section.channel, section.start, section.end, color);
   }
 }
 
-void Lights::colorRegionSection(std::string region, uint8_t sectionIndex, ColorRGB color, ColorRGBW colorExtended) {
-  auto result = lightsConfig->regions.find(region);
+void Lights::colorRegionSection(std::string regionName, uint8_t sectionIndex, Color color) {
+  auto region = lightsConfig->regions[regionName];
 
-  if (result != lightsConfig->regions.end()) {
-    auto region = result->second;
-    if (sectionIndex < region.sections.size()) {
-      auto section = region.sections[sectionIndex];
-      colorLEDs(section.channel, section.start, section.end, color, colorExtended);
-    }
+  if (sectionIndex < region.sections.size()) {
+    auto section = region.sections[sectionIndex];
+    colorLEDs(section.channel, section.start, section.end, color);
   }
 }
 
 void Lights::colorLEDs(uint8_t channel, uint16_t start, uint16_t end, Color color) {
   ESP_LOGV(LIGHTS_TAG,"Color section: %d (%d - %d)", channel, start, end);
   auto corrected = leds.gammaCorrected(color);
-  leds.setPixels(channel, corrected, start, end);
+  leds.setPixels(channel, corrected, start - 1, end);
 }
 
 void Lights::render(bool all, int8_t channel) {
@@ -308,20 +320,273 @@ void Lights::startAdvertisingLight(void* params) {
 
 // Input a value 0 to 255 to get a color value.
 // The colours are a transition r - g - b - back to r.
-ColorRGB Lights::Wheel(uint8_t WheelPos) {
-  if(WheelPos < 85)
-    return ColorRGB(WheelPos * 3, 255 - WheelPos * 3, 0);
-  else if(WheelPos < 170) {
-    WheelPos -= 85;
-    return ColorRGB(255 - WheelPos * 3, 0, WheelPos * 3);
+Color Lights::colorWheel(uint8_t pos) {
+  if(pos < 85)
+    return Color(pos * 3, 255 - pos * 3, 0);
+  else if(pos < 170) {
+    pos -= 85;
+    return Color(255 - pos * 3, 0, pos * 3);
   } 
   else {
-    WheelPos -= 170;
-    return ColorRGB(0, WheelPos * 3, 255 - WheelPos * 3);
+    pos -= 170;
+    return Color(0, pos * 3, 255 - pos * 3);
   }
 }
 
-ColorRGB Lights::randomColorRGB() {
-  return Wheel(rand() % 256); 
+Color Lights::randomColor() {
+  return colorWheel(rand() % 256); 
 }
 
+void Lights::applyEffect(LightingParameters parameters) {
+  auto region = parameters.region;
+  // remove existing lighting effect for the region
+  // TODO: maybe add a mutex to protect access?
+
+  if (lightsConfig->regions.find(region) != lightsConfig->regions.end()) {
+    _effects[region] = parameters;
+    _steps[region] = { 0, millis() };
+  }
+  else
+    ESP_LOGW(LIGHTS_TAG, "Cannot apply effect - Region %s does not exist.", region.c_str());
+}
+
+void Lights::renderer(void *args) {
+  auto lights = Lights::instance();
+  std::priority_queue<LightingParameters> compositor;
+  std::vector<LightingParameters> staticEffects;
+
+  for (;;) {
+    // process any messages
+    lights->process();
+
+    // schedule effects to be rendered
+    auto now = millis();
+    for (auto const& [region, step] : lights->_steps) {
+      auto& effect = lights->_effects[region];
+
+      if (step.next != REFRESH_NEVER && step.next <= now)
+        compositor.push(effect);
+      else if (effect.effect == LightEffect::Static || effect.effect == LightEffect::Off)
+        staticEffects.push_back(effect);
+    }
+
+    bool updatesNeeded = compositor.size() > 0;
+    
+    // re-render static/off effects if we've got updates
+    if (updatesNeeded)
+      for (auto& effect : staticEffects)
+        compositor.push(effect);
+
+    staticEffects.clear();
+
+    // apply effects
+    while (compositor.size() > 0) {
+      auto next = compositor.top();
+      auto& effect = lights->_effects[next.region];
+      auto& step = lights->_steps[next.region];
+      lights->renderLightingEffect(&effect, &step);
+      compositor.pop();
+    }
+
+    // render lights
+    if (updatesNeeded)
+      lights->render(true);
+      
+    delay(10);
+  }
+}
+
+void Lights::renderLightingEffect(LightingParameters *params, RenderStep *step) {
+  switch (params->effect) {
+    case LightEffect::Off:
+    case LightEffect::Static:
+      color(params, step);
+      break;
+    case LightEffect::Blink:
+      blink(params, step);
+      break;
+    case LightEffect::ColorWipe:
+      colorWipe(params, step);
+      break;
+    case LightEffect::Breathe:
+      breathe(params, step);
+      break;
+    case LightEffect::Fade:
+      fade(params, step);
+      break;
+    case LightEffect::Scan:
+      scan(params, step);
+      break;
+    case LightEffect::Rainbow:
+      rainbow(params, step);
+      break;
+    case LightEffect::RainbowCycle:
+      rainbowCycle(params, step);
+      break;
+    case LightEffect::TheaterChase:
+      theaterChase(params, step);
+      break;
+    case LightEffect::TheaterChaseRainbow:
+      theaterChaseRainbow(params, step);
+      break;
+    case LightEffect::Twinkle:
+      twinkle(params, step);
+      break;
+    case LightEffect::Sparkle:
+      sparkle(params, step);
+      break;
+    case LightEffect::Alternate:
+      alternate(params, step);
+      break;
+  }
+  step->step++;
+}
+
+void Lights::setRegionPixel(std::string regionName, uint32_t index, Color pixel) {
+  auto region = lightsConfig->regions[regionName];
+  if (index > region.count)
+    return;
+
+  uint32_t base = 0;
+  for (int i = 0; i < region.breaks.size(); i++) {
+    if (index <= base + region.breaks[i]) {
+      auto& section = region.sections[i];
+      uint16_t regionIndex = index - base;
+      leds.setPixel(section.channel, pixel, regionIndex);
+      break;
+    }
+    base += region.breaks[i];
+  }
+}
+
+Color Lights::blend(Color first, Color second, uint8_t weight) {
+  Color result;
+
+  result.r = ((first.r * weight) + (second.r * 255U - weight)) / 256U;
+  result.g = ((first.g * weight) + (second.g * 255U - weight)) / 256U;
+  result.b = ((first.b * weight) + (second.b * 255U - weight)) / 256U;
+
+  return result;
+}
+
+void Lights::color(LightingParameters *params, RenderStep *step) {
+  colorRegion(params->region, params->first);
+
+  // set time to render next frame
+  step->next = REFRESH_NEVER;
+}
+
+void Lights::blink(LightingParameters *params, RenderStep *step) {
+  // set color depending on odd or even step
+  step->step % 2 == 0 ? colorRegion(params->region, params->first) : colorRegion(params->region, params->second);
+
+  // set time to render next frame
+  step->next = millis() + params->duration;
+}
+
+void Lights::colorWipe(LightingParameters *params, RenderStep *step) {
+  auto region = lightsConfig->regions[params->region];
+  auto total = region.count;
+
+  // the animation is complete
+  if (step->step > total * 2) {
+    step->next = REFRESH_NEVER;
+    return;
+  }
+  
+  uint8_t position = step->step > total ? step->step % total : step->step;
+
+  if (step->step < total)
+    setRegionPixel(params->region, position, params->first);
+  else
+    setRegionPixel(params->region, position, params->second);
+  
+  // calculate next animation step
+  unsigned long next = params->duration / (total * 2);
+  step->next = millis() + next;
+}
+
+void Lights::breathe(LightingParameters *params, RenderStep *step) {
+  step->next = REFRESH_NEVER;
+}
+
+void Lights::fade(LightingParameters *params, RenderStep *step) {
+  uint16_t lum = step->step % 512;
+  if (lum > 255) lum = 511 - lum;
+
+  auto color = blend(params->first, params->second, lum);
+  colorRegion(params->region, color);
+
+  step->next = millis() + params->duration / 512;
+}
+
+void Lights::scan(LightingParameters *params, RenderStep *step) {
+  step->next = REFRESH_NEVER;
+}
+
+void Lights::rainbow(LightingParameters *params, RenderStep *step) {
+  uint8_t position = step->step % 256;
+  auto color = colorWheel(position);
+  colorRegion(params->region, color);
+
+  step->next = millis() + params->duration / 256;
+}
+
+void Lights::rainbowCycle(LightingParameters *params, RenderStep *step) {
+  auto region = lightsConfig->regions[params->region];
+  uint8_t position = step->step % 256;
+
+  for (uint32_t i = 0; i < region.count; i++) {
+    auto color = colorWheel(((i * 256 / region.count) + position) & 0xFF);
+    setRegionPixel(params->region, i, color);
+  }
+  
+  step->next = millis() + params->duration / 256;
+}
+
+void Lights::theaterChase(LightingParameters *params, RenderStep *step) {
+  auto region = lightsConfig->regions[params->region];
+  uint8_t index = step->step % 3;
+  for (uint32_t i = 0; i < region.count; i++, index++) {
+    index %= 3;
+
+    Color color;
+    switch (index) {
+      case 0: color = params->first; break;
+      case 1: color = params->second; break;
+      case 2: color = params->third; break;
+      default: color = params->first;
+    }
+    setRegionPixel(params->region, i, color);
+  }
+
+  step->next = millis() + params->duration / 3;
+}
+
+void Lights::theaterChaseRainbow(LightingParameters *params, RenderStep *step) {
+  uint8_t position = step->step % 256;
+  params->first = colorWheel(position);
+  params->second = colorWheel((position + 1) % 256);
+  params->third = colorWheel((position + 2) % 256);
+  theaterChase(params, step);
+}
+
+void Lights::twinkle(LightingParameters *params, RenderStep *step) {
+  step->next = REFRESH_NEVER;
+}
+
+void Lights::sparkle(LightingParameters *params, RenderStep *step) {
+  step->next = REFRESH_NEVER;
+}
+
+void Lights::alternate(LightingParameters *params, RenderStep *step) {
+  auto region = lightsConfig->regions[params->region];
+
+  bool first = step->step % 2 == 0;
+  for (uint32_t i = 0; i < region.count; i++) {
+    setRegionPixel(params->region, i, first ? params->first : params->second);
+    first = !first;
+  }
+  
+  step->next = millis() + params->duration;
+}

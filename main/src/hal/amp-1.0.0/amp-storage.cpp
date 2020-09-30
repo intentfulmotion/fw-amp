@@ -61,7 +61,7 @@ std::string AmpStorage::readFile(std::string filename) {
   FILE* file = fopen(filename.c_str(), "r");
 
   if (file == NULL) {
-    ESP_LOGE(STORAGE_TAG,"Could not open file: %s", filename.c_str());
+    ESP_LOGE(STORAGE_TAG, "Could not open file: %s", filename.c_str());
     return "";
   }
 
@@ -82,6 +82,19 @@ FILE* AmpStorage::writeFile(std::string filename) {
     unlink(filename.c_str());
 
   return fopen(filename.c_str(), "w+");
+}
+
+void AmpStorage::saveDeviceName(std::string name) {
+  saveString("name", name);
+}
+
+std::string AmpStorage::getDeviceName() {
+  std::string name = getString("name");
+
+  if (name.length() == 0)
+    name = getDefaultName();
+  
+  return name;
 }
 
 float AmpStorage::getTurnZero() {
@@ -121,7 +134,7 @@ float AmpStorage::getFloat(const char *key, float defaultValue) {
   nvs_close(handle);
 
   if (err != ESP_OK) {
-    ESP_LOGW(STORAGE_TAG,"Unable to get %s from NVS", key);
+    ESP_LOGW(STORAGE_TAG, "Unable to get %s from NVS", key);
     return defaultValue;
   }
 
@@ -150,5 +163,42 @@ void AmpStorage::saveFloat(const char* key, float value) {
   nvs_close(handle);
   
   if (err != ESP_OK)
-    ESP_LOGW(STORAGE_TAG,"Unable to save %s to NVS", key);
+    ESP_LOGW(STORAGE_TAG, "Unable to save %s to NVS", key);
+}
+
+void AmpStorage::saveString(std::string key, std::string value) {
+  nvs_handle handle;
+  
+  auto err = nvs_open(storage, NVS_READWRITE, &handle);
+  err = nvs_set_str(handle, key.c_str(), value.c_str());
+
+  err = nvs_commit(handle);
+
+  nvs_close(handle);
+
+  if (err != ESP_OK)
+    ESP_LOGW(STORAGE_TAG, "Unable to save %s:%s to NVS", key.c_str(), value.c_str());
+}
+
+std::string AmpStorage::getString(std::string key) {
+  nvs_handle handle;
+
+  // open NVS
+  auto err = nvs_open(storage, NVS_READWRITE, &handle);
+
+  // read as string
+  size_t size;
+  err = nvs_get_str(handle, key.c_str(), NULL, &size);
+
+  char* valueRaw = (char*) malloc(size);
+  err = nvs_get_str(handle, "server_name", valueRaw, &size);
+
+  nvs_close(handle);
+
+  if (err != ESP_OK) {
+    ESP_LOGW(STORAGE_TAG, "Unable to get %s from NVS", key.c_str());
+    return "";
+  }
+
+  return std::string(valueRaw);
 }

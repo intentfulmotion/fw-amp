@@ -25,6 +25,9 @@ class AmpStorage {
     static std::string getSerialNumber();
     static std::string getDefaultName();
 
+    static void saveDeviceName(std::string name);
+    static std::string getDeviceName();
+
     FILE* openFile(std::string filename, std::string attributes = "r");
     std::string readFile(std::string filename);
     FILE* writeFile(std::string filename);
@@ -37,4 +40,7 @@ class AmpStorage {
 
     static void saveFloat(const char* key, float value);
     static float getFloat(const char* key, float defaultValue = 0);
+
+    static void saveString(std::string key, std::string value);
+    static std::string getString(std::string key);
 };

@@ -22,7 +22,7 @@ static const char* CONFIG_TAG = "config";
 class Config : public LifecycleBase {
   std::vector<ConfigListener*> configListeners;
   AmpStorage ampStorage;
-
+  
   StaticJsonDocument<5000> document;
   std::string rawConfig;
   std::string renderer;
@@ -31,6 +31,8 @@ class Config : public LifecycleBase {
   bool _valid = false;
 
   std::string configPath = "/spiffs/config.mp";
+
+  static bool parseEffect(std::string data, LightingParameters *params);
 
   public:
     static AmpConfig ampConfig;
@@ -44,7 +46,7 @@ class Config : public LifecycleBase {
     bool loadConfig(std::string msgPackData);
     void saveConfig();
 
-    void loadPrefsConfig(JsonObject prefsJson);
+    void loadActionConfig(JsonObject actionJson);
     void loadMotionConfig(JsonObject motionJson);
     void loadLightsConfig(JsonObject lightsJson);
     std::string readFile(std::string filename);

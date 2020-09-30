@@ -24,13 +24,15 @@ struct LightChannel {
 
 struct LightSection {
   uint8_t channel;
-  uint8_t start;
-  uint8_t end;
+  uint16_t start;
+  uint16_t end;
 };
 
 struct LightRegion {
   std::string name;
   std::vector<LightSection> sections;
+  uint32_t count;
+  std::vector<uint16_t> breaks;
 };
 
 struct LightsConfig {
@@ -38,31 +40,61 @@ struct LightsConfig {
   std::map<uint8_t, LightChannel> channels;
 };
 
-enum LightMode : uint8_t {
-  NoMode = 0x00,
-  RunningMode,
-  LightningMode,
-  TheaterChaseMode,
-  TheaterChaseRainbowMode,
-  RainbowMode,
+enum LightEffect : uint8_t {
+  Off = 0x00,
+  Static,
+  Blink,
+  ColorWipe,
+  Breathe,
+  Fade,
+  Scan,
+  Rainbow,
+  RainbowCycle,
+  TheaterChase,
+  TheaterChaseRainbow,
+  Twinkle,
+  Sparkle,
+  Alternate
 };
 
 enum LightCommand {
   NoCommand = 0x00,
   LightsOff,
   LightsReset,
-  LightsRunning,
-  LightsBright,
+  LightsBrakeNormal,
+  LightsBrakeActive,
+  LightsHeadlightNormal,
+  LightsHeadlightBright,
   LightsTurnCenter,
   LightsTurnLeft,
   LightsTurnRight,
   LightsTurnHazard,
-  LightsBrake
 };
 
 struct LightCommands {
-  LightMode mode;
   LightCommand brakeCommand;
   LightCommand turnCommand;
   LightCommand headlightCommand;
 };
+
+struct LightingParameters {
+  std::string region;
+  LightEffect effect;
+  uint8_t layer;
+  Color first;
+  Color second;
+  Color third;
+  uint32_t duration;
+};
+
+struct RenderStep {
+  unsigned long step;
+  unsigned long next;
+};
+
+inline bool operator< (const LightingParameters& lhs, const LightingParameters& rhs){ return lhs.layer < rhs.layer; }
+inline bool operator> (const LightingParameters& lhs, const LightingParameters& rhs){ return lhs.layer > rhs.layer; }
+inline bool operator<=(const LightingParameters& lhs, const LightingParameters& rhs){ return lhs.layer <= rhs.layer; }
+inline bool operator>=(const LightingParameters& lhs, const LightingParameters& rhs){ return lhs.layer >= rhs.layer; }
+inline bool operator==(const LightingParameters& lhs, const LightingParameters& rhs){ return lhs.layer == rhs.layer; }
+inline bool operator!=(const LightingParameters& lhs, const LightingParameters& rhs){ return lhs.layer != rhs.layer; }

@@ -1,5 +1,7 @@
 #pragma once
 #include <string>
+#include <map>
+#include <vector>
 #include <models/light.h>
 #include <models/motion.h>
 
@@ -8,19 +10,12 @@ struct DeviceInfo {
   std::string hardwareVersion;
   std::string serialNumber;
   std::string firmwareVersion = FIRMWARE_VERSION;
-};
-
-struct PrefsConfig {
   std::string deviceName;
-  long turnFlashRate;
-  long brakeFlashRate;
-  long brakeDuration;
-  LightMode renderer;
 };
 
 struct AmpConfig {
   MotionConfig motion;
   LightsConfig lights;
-  PrefsConfig prefs;
+  std::map<std::string, std::vector<LightingParameters>*> actions;
   DeviceInfo info;
 };

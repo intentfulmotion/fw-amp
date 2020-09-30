@@ -2,6 +2,7 @@
 #include <vector>
 
 #include <common.h>
+#include <queue>
 #include <interfaces/lifecycle.h>
 #include <interfaces/power-listener.h>
 #include <interfaces/touch-listener.h>
@@ -17,6 +18,8 @@
 #endif
 
 #include <hal/config.h>
+
+#define REFRESH_NEVER   0
 
 static const char* LIGHTS_TAG = "lights";
 
@@ -39,6 +42,34 @@ class Lights : public LifecycleBase,
   bool advertising = false;
   bool advertisingToggle = false;
   TaskHandle_t advertisingLightHandle;
+
+  std::map<std::string, LightingParameters> _effects;
+  std::map<std::string, RenderStep> _steps;
+  std::map<std::string, uint32_t> _pixelCounts;
+
+  static void renderer(void *args);
+  void renderLightingEffect(LightingParameters *params, RenderStep *step);
+  void color(LightingParameters *params, RenderStep *step);
+  void blink(LightingParameters *params, RenderStep *step);
+  void colorWipe(LightingParameters *params, RenderStep *step);
+  void breathe(LightingParameters *params, RenderStep *step);
+  void fade(LightingParameters *params, RenderStep *step);
+  void scan(LightingParameters *params, RenderStep *step);
+  void rainbow(LightingParameters *params, RenderStep *step);
+  void rainbowCycle(LightingParameters *params, RenderStep *step);
+  void colorChase(LightingParameters *params, RenderStep *step);
+  void theaterChase(LightingParameters *params, RenderStep *step);
+  void theaterChaseRainbow(LightingParameters *params, RenderStep *step);
+  void twinkle(LightingParameters *params, RenderStep *step);
+  void sparkle(LightingParameters *params, RenderStep *step);
+  void alternate(LightingParameters *params, RenderStep *step);
+
+  TaskHandle_t renderHandle;
+
+  unsigned long _lastRender = millis();
+
+  void setRegionPixel(std::string regionName, uint32_t index, Color pixel);
+  Color blend(Color first, Color second, uint8_t weight);
 
   public:
     Lights();
@@ -83,15 +114,21 @@ class Lights : public LifecycleBase,
 
     void setStatus(ColorRGB color);
 
-    void colorRegion(std::string region, Color color);
-    void colorRegionSection(std::string region, uint8_t section, Color color);
+    void colorRegion(std::string regionName, Color color);
+    void colorRegionSection(std::string regionName, uint8_t section, Color color);
     void colorLEDs(uint8_t channel, uint16_t led, uint16_t count, Color color);
     void render(bool all = false, int8_t channel = -1);
 
-    ColorRGB Wheel(uint8_t pos);
-    ColorRGB randomColorRGB();
+    Color colorWheel(uint8_t pos);
+    Color randomColor();
 
     static void startCalibrateLight(void* params);
     static void startUpdateLight(void *params);
     static void startAdvertisingLight(void *params);
+
+    void applyEffect(LightingParameters parameters);
+
+    static std::map<LightCommand, std::string> headlightActions;
+    static std::map<LightCommand, std::string> brakeActions;
+    static std::map<LightCommand, std::string> turnActions;
 };

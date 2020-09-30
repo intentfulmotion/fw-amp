@@ -13,8 +13,6 @@ idf_component_register(
     "src/hal/motion.cpp"
     "src/hal/power.cpp"
     "src/hal/updater.cpp"
-    "src/renderers/pattern.cpp"
-    "src/renderers/running.cpp"
     "src/services/battery-service.cpp"
     "src/services/config-service.cpp"
     "src/services/device-info-service.cpp"
@@ -31,10 +29,11 @@ idf_component_register(
     "include/hal/amp-1.0.0/"
     "include/interfaces/"
     "include/models/"
-    "include/renderers/"
     "include/services/"
     "libraries/ArduinoJSON/"
 
   REQUIRES lis3dh bt spi_flash soc efuse nvs_flash esp-nimble-cpp esp_adc_cal AddressableLED
   PRIV_REQUIRES app_update fatfs freertos spiffs soc efuse
 )
+
+target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++17 -Wswitch)

@@ -65,7 +65,6 @@ void Amp::process() {
   Power::powerDown.wait("power");
 
   power->process();
-  lights->process();
 
   if (app != nullptr)
     app->process();

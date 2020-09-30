@@ -72,8 +72,8 @@ bool Config::loadConfig(std::string msgPackData) {
   JsonObject lightsJson = configJson["lights"].as<JsonObject>();
   loadLightsConfig(lightsJson);
 
-  JsonObject prefsJson = configJson["preferences"].as<JsonObject>();
-  loadPrefsConfig(prefsJson);
+  JsonObject actionsJson = configJson["actions"].as<JsonObject>();
+  loadActionConfig(actionsJson);
 
   JsonObject motionJson = configJson["motion"].as<JsonObject>();
   loadMotionConfig(motionJson);
@@ -143,6 +143,8 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
 
     LightRegion region;
     std::vector<LightSection> sections;
+    region.count = 0;
+
     for (auto sect : sectionsJson) {
       LightSection section;
       JsonObject sectionJson = sect.as<JsonObject>();
@@ -163,8 +165,12 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
       else
         _validSection = false;
 
-      if (_validSection)
+      if (_validSection) {
         sections.push_back(section);
+        uint16_t count = section.end - section.start;
+        region.count += count;
+        region.breaks.push_back(count);
+      }
     }
     region.sections = sections;
     regions[regionName] = region;
@@ -177,23 +183,29 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
   ampConfig.lights = config;
 }
 
-void Config::loadPrefsConfig(JsonObject prefsJson) {
-  PrefsConfig prefsConfig;
+void Config::loadActionConfig(JsonObject actionJson) {
+  std::map<std::string, std::vector<LightingParameters>*> actions;
 
-  if (!prefsJson.containsKey("name") || prefsJson["name"].as<std::string>().size() == 0)
-    prefsConfig.deviceName = ampStorage.getDefaultName();
-  else
-    prefsConfig.deviceName = prefsJson["name"].as<std::string>();
+  for (auto actionPair : actionJson) {
+    std::string action = std::string(actionPair.key().c_str());
+    actions[action] = new std::vector<LightingParameters>();
+    JsonArray regionEffects = actionPair.value().as<JsonArray>();
+    
+    // parse all regional effects for action
+    for (auto regionEffect : regionEffects) {
+      if (regionEffect.containsKey("region") && regionEffect.containsKey("effect")) {
+        LightingParameters effect;
 
-  ESP_LOGV(CONFIG_TAG,"Device Name: %s", prefsConfig.deviceName.c_str());
-  prefsConfig.turnFlashRate = prefsJson["turnFlashRate"] | 200;
-  prefsConfig.brakeFlashRate = prefsJson["brakeFlashRate"] | 100;
-  prefsConfig.brakeDuration = prefsJson["brakeDuration"] | 1500;
+        // validate and add lighting effect
+        if (parseEffect(regionEffect["effect"], &effect)) {
+          effect.region = regionEffect["region"].as<std::string>();
+          actions[action]->push_back(effect);
+        }
+      }
+    }
+  }
 
-  uint8_t renderer = (prefsJson["renderer"]) | 0;
-  prefsConfig.renderer = (LightMode) renderer;
-
-  ampConfig.prefs = prefsConfig;
+  ampConfig.actions = actions;
 }
 
 std::string Config::readFile(std::string filename) {
@@ -208,6 +220,67 @@ DeviceInfo Config::getDeviceInfo() {
   DeviceInfo info;
   info.hardwareVersion = AmpStorage::getHardwareRevision();
   info.serialNumber = AmpStorage::getSerialNumber();
+  info.deviceName = AmpStorage::getDeviceName();
 
   return info;
+}
+
+bool Config::parseEffect(std::string data, LightingParameters *params) {
+  auto parts = split(data, ',');
+  params->effect = (LightEffect) atoi(parts[0].c_str());
+  auto numParts = parts.size();
+
+  switch (params->effect) {
+    case LightEffect::Static:
+      if (numParts < 2) {
+        ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
+        return false;
+      }
+
+      params->first = hexToColor(parts[1]);
+
+      if (numParts == 3)
+        params->layer = atoi(parts[2].c_str());
+      break;
+    case LightEffect::Scan:
+    case LightEffect::ColorWipe:
+    case LightEffect::Blink:
+    case LightEffect::Breathe:
+    case LightEffect::Fade:
+    case LightEffect::Twinkle:
+    case LightEffect::Sparkle:
+    case LightEffect::Alternate:
+    case LightEffect::TheaterChase:
+      if (numParts < 4) {
+        ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
+        return false;
+      }
+
+      params->first = hexToColor(parts[1]);
+      params->second = hexToColor(parts[2]);
+      params->duration = atoll(parts[3].c_str());
+
+      if (numParts == 5)
+        params->layer = atoi(parts[4].c_str());
+      break;
+    case LightEffect::Rainbow:
+    case LightEffect::RainbowCycle:
+    case LightEffect::TheaterChaseRainbow:
+      if (numParts < 2) {
+        ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
+        return false;
+      }
+
+      params->duration = atoll(parts[1].c_str());
+
+      if (numParts == 3)
+        params->layer = atoi(parts[2].c_str());
+      break;
+    case LightEffect::Off:
+      params->first = lightOff;
+    default:
+      break;
+  }
+
+  return true;
 }

@@ -36,7 +36,7 @@ void BluetoothLE::process() {
 
   if (publicAdvertising && millis() - publicAdvertiseStart >= PUBLIC_ADVERTISEMENT_MS) {
     notifyListeners(false);
-    updateAdvertising(Config::ampConfig.prefs.deviceName, false);
+    updateAdvertising(Config::ampConfig.info.deviceName, false);
   }
 }
 
@@ -64,7 +64,7 @@ void BluetoothLE::onConfigUpdated() {
   auto config = &Config::ampConfig;
 
   // update device name
-  updateAdvertising(config->prefs.deviceName, true);
+  updateAdvertising(config->info.deviceName, true);
   bleReady.give();
 }
 
@@ -110,7 +110,7 @@ void BluetoothLE::onDisconnect(NimBLEServer *server) {
 void BluetoothLE::onTouchEvent(std::vector<TouchType> *touches) {
   if (touches->size() == 3) {
     notifyListeners(true);
-    updateAdvertising(Config::ampConfig.prefs.deviceName, true);
+    updateAdvertising(Config::ampConfig.info.deviceName, true);
   }
 }
 

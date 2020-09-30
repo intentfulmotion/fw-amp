@@ -13,5 +13,5 @@ void appLoop(void *params) {
 }
 
 extern "C" void app_main(void) {
-  xTaskCreatePinnedToCore(appLoop, "app_main", 4096, NULL, 5, &mainHandle, 1);
+  xTaskCreatePinnedToCore(appLoop, "app_main", 1024 * 8, NULL, 5, &mainHandle, 1);
 }

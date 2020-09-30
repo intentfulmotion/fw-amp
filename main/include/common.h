@@ -51,10 +51,13 @@ static const ColorRGB updateError(127, 0, 0);
 
 #include <memory>
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 #include <cstdio>
 #include "esp_task_wdt.h"
 
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include <esp_log.h>
 
 #define PI 3.1415926535897932384626433832795
@@ -94,12 +97,12 @@ inline std::string string_format( const std::string& format, Args ... args )
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
-inline unsigned long IRAM_ATTR micros()
+inline unsigned long micros()
 {
   return (unsigned long) (esp_timer_get_time());
 }
 
-inline unsigned long IRAM_ATTR millis()
+inline unsigned long millis()
 {
   return (unsigned long) (esp_timer_get_time() / 1000ULL);
 }
@@ -139,4 +142,21 @@ inline uint8_t percentageFromReading(float reading) {
       return 100 - (5 * i);
   
   return 0;
+}
+
+inline Color hexToColor(std::string hex) {
+  Color color;
+  sscanf(hex.c_str(), "#%02x%02x%02x", (uint*) &color.r, (uint*) &color.g, (uint*) &color.b);
+
+  return color;
+}
+
+inline std::vector<std::string> split(const std::string &s, char delim) {
+  std::stringstream ss(s);
+  std::string item;
+  std::vector<std::string> elems;
+  while (std::getline(ss, item, delim))
+    elems.push_back(std::move(item));
+
+  return elems;
 }

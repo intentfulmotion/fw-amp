@@ -8,7 +8,7 @@ App::App(Amp *instance) {
   amp->config.addConfigListener(this);
 
   configUpdatedQueue = xQueueCreate(1, sizeof(bool));
-  lightModeQueue = xQueueCreate(1, sizeof(LightMode));
+  // lightModeQueue = xQueueCreate(1, sizeof(LightMode));
   vehicleQueue = xQueueCreate(5, sizeof(VehicleState));
 }
 
@@ -37,8 +37,8 @@ void App::onPowerUp() {
   amp->ble.startAdvertising();
 
   // notify lights changed
-  if (renderer != nullptr)
-    notifyLightsChanged(renderer->getBrakeCommand(), renderer->getTurnLightCommand(), renderer->getHeadlightCommand());
+  // if (renderer != nullptr)
+    // notifyLightsChanged(renderer->getBrakeCommand(), renderer->getTurnLightCommand(), renderer->getHeadlightCommand());
 #endif
 
   // listen to motion changes
@@ -48,21 +48,23 @@ void App::onPowerUp() {
 void App::onPowerDown() {
   ESP_LOGD(APP_TAG,"App power down");
 
-  if (renderHostHandle != NULL) {
-    vTaskDelete(renderHostHandle);
-    renderHostHandle = NULL;
-  }
+  // TODO: remove all lighting effects
+  // if (renderHostHandle != NULL) {
+  //   vTaskDelete(renderHostHandle);
+  //   renderHostHandle = NULL;
+  // }
 
-  if (renderer != NULL)
-    renderer->shutdown();
+  // if (renderer != NULL)
+  //   renderer->shutdown();
 }
 
 void App::onConfigUpdated() {
   config = &Config::ampConfig;
 
-  // start new render host
-  ESP_LOGD(APP_TAG,"Renderer starting after config update");
-  setLightMode(config->prefs.renderer);
+  // TODO: setup lights somehow
+
+  // reset motion detection
+  amp->motion.resetMotionDetection();
 }
 
 void App::process() {
@@ -73,17 +75,12 @@ void App::process() {
       onConfigUpdated();
   }
 
-  if (uxQueueMessagesWaiting(lightModeQueue)) {
-    LightMode mode;
-    if (xQueueReceive(lightModeQueue, &mode, 0))
-      setLightMode(mode);
-  }
-
   VehicleState state;
   bool newVehicleState = false;
-  while (uxQueueMessagesWaiting(vehicleQueue)) {
+
+  // consume all new vehicle states from queue
+  while (uxQueueMessagesWaiting(vehicleQueue))
     newVehicleState = xQueueReceive(vehicleQueue, &state, 0);
-  }
 
   if (newVehicleState) {
     if (vehicleState.acceleration != state.acceleration)
@@ -114,26 +111,26 @@ void App::process() {
 }
 
 void App::onAccelerationStateChanged(AccelerationState state) {
-  // ESP_LOGD(APP_TAG,"on acceleration state changed");
-  if (renderer != NULL) {
+  ESP_LOGD(APP_TAG, "on acceleration state changed");
+  // if (renderer != NULL) {
     LightCommand command;
 
     switch (state) {
       case AccelerationState::Braking:
-        command = LightCommand::LightsBrake;
+        command = LightCommand::LightsBrakeActive;
         break;
       default:
       case AccelerationState::Neutral:
-        command = LightCommand::LightsRunning;
+        command = LightCommand::LightsBrakeNormal;
         break;
     }
 
     setBrakes(command);
-  }
+  // }
 }
 
 void App::onTurnStateChanged(TurnState state) {
-  if (renderer != NULL) {
+  // if (renderer != NULL) {
     LightCommand command;
 
     switch (state) {
@@ -153,11 +150,11 @@ void App::onTurnStateChanged(TurnState state) {
     }
 
     setTurnLights(command);
-  }
+  // }
 }
 
 void App::onOrientationChanged(Orientation state) {
-  if (renderer != NULL) {
+  // if (renderer != NULL) {
     LightCommand command;
 
     switch (state) {
@@ -172,82 +169,122 @@ void App::onOrientationChanged(Orientation state) {
     setTurnLights(command);
     setBrakes(command);
     setHeadlight(command);
-  }
+  // }
 }
 
-void App::setLightMode(LightMode mode) {
-  if (lightMode != mode) {
-    if (renderHostHandle != NULL) {
-      vTaskDelete(renderHostHandle);
-      renderer->shutdown();
+// void App::setLightMode(LightMode mode) {
+//   if (lightMode != mode) {
+//     if (renderHostHandle != NULL) {
+//       vTaskDelete(renderHostHandle);
+//       renderer->shutdown();
 
-      renderer = NULL;
-      renderHostHandle = NULL;
-    }
+//       renderer = NULL;
+//       renderHostHandle = NULL;
+//     }
 
-    switch (mode) {
-      case LightMode::TheaterChaseRainbowMode:
-        renderer = new PatternRenderer(amp->lights, "theater-chase-rainbow");
-        break;
-      case LightMode::TheaterChaseMode:
-        renderer = new PatternRenderer(amp->lights, "theater-chase");
-        break;
-      case LightMode::RainbowMode:
-        renderer = new PatternRenderer(amp->lights, "rainbow");
-        break;
-      case LightMode::LightningMode:
-        renderer = new PatternRenderer(amp->lights, "lightning");
-        break;
-      case LightMode::RunningMode:
-      default:
-        renderer = new RunningRenderer(amp->lights, config);
-        amp->lights->render();
-      break;
-    }
+//     switch (mode) {
+//       case LightMode::TheaterChaseRainbowMode:
+//         renderer = new PatternRenderer(amp->lights, "theater-chase-rainbow");
+//         break;
+//       case LightMode::TheaterChaseMode:
+//         renderer = new PatternRenderer(amp->lights, "theater-chase");
+//         break;
+//       case LightMode::RainbowMode:
+//         renderer = new PatternRenderer(amp->lights, "rainbow");
+//         break;
+//       case LightMode::LightningMode:
+//         renderer = new PatternRenderer(amp->lights, "lightning");
+//         break;
+//       case LightMode::RunningMode:
+//       default:
+//         renderer = new RunningRenderer(amp->lights, config);
+//         amp->lights->render();
+//       break;
+//     }
 
-    xTaskCreatePinnedToCore(startRenderHost, "renderer", 8 * 1024, this, 5, renderHostHandle, 1);
-    lightMode = mode;
+//     xTaskCreatePinnedToCore(startRenderHost, "renderer", 8 * 1024, this, 5, renderHostHandle, 1);
+//     lightMode = mode;
 
-    notifyLightsChanged();
-  }
-}
+//     notifyLightsChanged();
+//   }
+// }
 
-void App::startRenderHost(void *params) {
-  App *app = (App*)params;
-  Amp *amp = app->amp;
+// void App::startRenderHost(void *params) {
+//   App *app = (App*)params;
+//   Amp *amp = app->amp;
 
-  amp->motion.resetMotionDetection();
+//   amp->motion.resetMotionDetection();
   
-  for (;;) {
-    if (app->renderer != NULL)
-      app->renderer->process();
+//   for (;;) {
+//     if (app->renderer != NULL)
+//       app->renderer->process();
 
-    delay(50);
-  }
+//     delay(50);
+//   }
 
-  app->renderHostHandle = NULL;
-  vTaskDelete(NULL);
-}
+//   app->renderHostHandle = NULL;
+//   vTaskDelete(NULL);
+// }
 
 void App::setHeadlight(LightCommand command) {
-  if (renderer != NULL && renderer->headlightQueue != NULL)
-    xQueueSend(renderer->headlightQueue, &command, 0);
+  auto actions = config->actions;
+  if (command == LightCommand::LightsReset)
+    command = _headlightCommand;
+  std::string actionName = Lights::headlightActions[command];
 
-  // update listeners
+  if (actions.find(actionName) != actions.end()) {
+    for (auto effect : *actions[actionName])
+      amp->lights->applyEffect(effect);
+  }
+
+  _headlightCommand = command;
+
+  // if (renderer != NULL && renderer->headlightQueue != NULL)
+  //   xQueueSend(renderer->headlightQueue, &command, 0);
+
+  // // update listeners
   notifyLightsChanged(NoCommand, NoCommand, command);
 }
 
 void App::setBrakes(LightCommand command) {
-  if (renderer != NULL && renderer->brakelightQueue != NULL)
-    xQueueSend(renderer->brakelightQueue, &command, 0);
+  auto actions = config->actions;
+  if (command == LightCommand::LightsReset)
+    command = _brakeCommand;
+
+  std::string actionName = Lights::brakeActions[command];
+
+  ESP_LOGI(APP_TAG, "Setting brakes - Command: %d, Action name: %s", command, actionName.c_str());
+
+  if (actions.find(actionName) != actions.end()) {
+    for (auto effect : *actions[actionName]) {
+      ESP_LOGI(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
+      amp->lights->applyEffect(effect);
+    }
+  }
+  // if (renderer != NULL && renderer->brakelightQueue != NULL)
+  //   xQueueSend(renderer->brakelightQueue, &command, 0);
+
+  _brakeCommand = command;
 
   // update listeners
   notifyLightsChanged(command, NoCommand, NoCommand);
 }
 
 void App::setTurnLights(LightCommand command) {
-  if (renderer != NULL && renderer->turnlightQueue != NULL)
-    xQueueSend(renderer->turnlightQueue, &command, 0);
+  auto actions = config->actions;
+  if (command == LightCommand::LightsReset)
+    command = _turnCommand;
+
+  std::string actionName = Lights::turnActions[command];
+  
+  if (actions.find(actionName) != actions.end()) {
+    for (auto effect : *actions[actionName])
+      amp->lights->applyEffect(effect);
+  }
+
+  _turnCommand = command;
+  // if (renderer != NULL && renderer->turnlightQueue != NULL)
+  //   xQueueSend(renderer->turnlightQueue, &command, 0);
 
   // update listeners
   notifyLightsChanged(NoCommand, command, NoCommand);
@@ -255,7 +292,6 @@ void App::setTurnLights(LightCommand command) {
 
 void App::notifyLightsChanged(LightCommand brakeCommand, LightCommand turnCommand, LightCommand headlightCommand) {
   LightCommands commands;
-  commands.mode = lightMode;
   commands.brakeCommand = brakeCommand;
   commands.turnCommand = turnCommand;
   commands.headlightCommand = headlightCommand;
