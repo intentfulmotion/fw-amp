@@ -29,19 +29,19 @@ void ConfigService::setupService() {
 void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
   std::string uuid = characteristic->getUUID().toString();
   std::string received = characteristic->getValue();
-  ESP_LOGV(CONFIG_SERVICE_TAG,"Received: %s", received.c_str());
+  ESP_LOGV(CONFIG_SERVICE_TAG, "Received: %s", received.c_str());
 
   if (uuid.compare(configRxCharacteristicUUID) == 0) {
     std::size_t partialMarker = received.find_first_of("##");
     if (partialMarker == std::string::npos) {
       // this is a single packet
-      ESP_LOGV(CONFIG_SERVICE_TAG,"Single packet data: %s", received.c_str());
+      ESP_LOGV(CONFIG_SERVICE_TAG, "Single packet data: %s", received.c_str());
       processCommand(received);
     }
     else {
       uint8_t totalPackets = (uint8_t)received[2];
       uint8_t currentPacket = (uint8_t)received[3];
-      ESP_LOGV(CONFIG_SERVICE_TAG,"Received partial packet %d/%d", currentPacket, totalPackets);
+      ESP_LOGV(CONFIG_SERVICE_TAG, "Received partial packet %d/%d", currentPacket, totalPackets);
 
       // clear the buffer if we've received a new first packet
       if (currentPacket == 1)
@@ -52,11 +52,7 @@ void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
 
       // if it's the last packet
       if (currentPacket == totalPackets) {
-        ESP_LOGD(CONFIG_SERVICE_TAG,"Received last partial packet. Total size: %d %s", rxBuffer.length(), rxBuffer.c_str());
-        printf("Bytes: ");
-        for (int i = 0; i < rxBuffer.length(); i++)
-          printf("%d ", rxBuffer[i]);
-        printf("\n");
+        ESP_LOGD(CONFIG_SERVICE_TAG, "Received last partial packet. Total size: %d %s", rxBuffer.length(), rxBuffer.c_str());
         processCommand(rxBuffer);
         rxBuffer.clear();
       }
@@ -65,16 +61,16 @@ void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
 }
 
 void ConfigService::processCommand(std::string data) {
-  ESP_LOGD(CONFIG_SERVICE_TAG,"Parsing command: %s", data.c_str());
+  ESP_LOGD(CONFIG_SERVICE_TAG, "Parsing command: %s", data.c_str());
   std::size_t command_location = data.find_first_of(":");
   if (command_location == std::string::npos)
-    ESP_LOGW(CONFIG_SERVICE_TAG,"Invalid command (no key)");
+    ESP_LOGW(CONFIG_SERVICE_TAG, "Invalid command (no key)");
   else {
     std::string key = data.substr(0, command_location);
     std::string value = data.substr(command_location + 1);
 
     if (key == "raw") {
-      ESP_LOGV(CONFIG_SERVICE_TAG,"Raw configuration received: %s", value.c_str());
+      ESP_LOGV(CONFIG_SERVICE_TAG, "Raw configuration received: %s", value.c_str());
       _config->loadConfig(value);
 
       // save config if valid
@@ -84,15 +80,23 @@ void ConfigService::processCommand(std::string data) {
     else if (key == "conf") {
       std::size_t configValueLocation = data.find_first_of("=");
       if (configValueLocation == std::string::npos)
-        ESP_LOGW(CONFIG_SERVICE_TAG,"Missing '=' in configuration setting");
+        ESP_LOGW(CONFIG_SERVICE_TAG, "Missing '=' in configuration setting");
       else {
         std::string configKey = value.substr(0, configValueLocation);
         std::string configValue = value.substr(configValueLocation);
+
+        // TODO: update config using keys
       }
+    }
+    else if (key == "name") {
+      // limit to 100 characters
+      std::string name = value.substr(0, std::min((int) value.length(), 100));
+      AmpStorage::saveDeviceName(name);
+      BluetoothLE::instance()->updateAdvertising(name, true);
     }
     else if (key == "get") {
       if (value == "config") {
-        ESP_LOGD(CONFIG_SERVICE_TAG,"Config requested");
+        ESP_LOGD(CONFIG_SERVICE_TAG, "Config requested");
         std::string prefix = std::string("config:");
         std::string configData = _config->getRawConfig();
         transmit(prefix.append(configData));

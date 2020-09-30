@@ -51,6 +51,9 @@ class Config : public LifecycleBase {
     void loadLightsConfig(JsonObject lightsJson);
     std::string readFile(std::string filename);
     void addConfigListener(ConfigListener *listener);
+    void notifyConfigListeners();
+
+    void updateDeviceName(std::string name);
 
     bool isValid() { return _valid; }
     std::string getRawConfig() { return rawConfig; }

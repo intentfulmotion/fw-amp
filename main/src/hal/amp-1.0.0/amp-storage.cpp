@@ -191,7 +191,7 @@ std::string AmpStorage::getString(std::string key) {
   err = nvs_get_str(handle, key.c_str(), NULL, &size);
 
   char* valueRaw = (char*) malloc(size);
-  err = nvs_get_str(handle, "server_name", valueRaw, &size);
+  err = nvs_get_str(handle, key.c_str(), valueRaw, &size);
 
   nvs_close(handle);
 

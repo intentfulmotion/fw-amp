@@ -25,7 +25,7 @@ class Amp {
     static Config config;
 
 #ifdef BLE_ENABLED
-    static BluetoothLE ble;
+    static BluetoothLE *ble;
 #endif
 
     LifecycleBase *app = nullptr;

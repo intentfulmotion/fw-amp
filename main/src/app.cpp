@@ -17,15 +17,15 @@ void App::onPowerUp() {
   BluetoothLE::bleReady.wait();
 
   // workaround for weird bug where the first initialized service is duplicated / empty
-  auto dummyService = amp->ble.server->createService(NimBLEUUID((uint16_t)0x183B));
+  auto dummyService = amp->ble->server->createService(NimBLEUUID((uint16_t)0x183B));
   dummyService->start();
   
   // startup bluetooth services
-  deviceInfoService = new DeviceInfoService(amp->ble.server);
-  batteryService = new BatteryService(amp->ble.server);
-  vehicleService = new VehicleService(&(amp->motion), amp->power, amp->ble.server, this);
-  configService = new ConfigService(&(amp->config), amp->ble.server);
-  updateService = new UpdateService(amp->updater, amp->ble.server);
+  deviceInfoService = new DeviceInfoService(amp->ble->server);
+  batteryService = new BatteryService(amp->ble->server);
+  vehicleService = new VehicleService(&(amp->motion), amp->power, amp->ble->server, this);
+  configService = new ConfigService(&(amp->config), amp->ble->server);
+  updateService = new UpdateService(amp->updater, amp->ble->server);
 
   // listen to power updates
   amp->power->addPowerLevelListener(batteryService);
@@ -34,7 +34,7 @@ void App::onPowerUp() {
   addRenderListener(vehicleService);
 
   // startup advertising
-  amp->ble.startAdvertising();
+  amp->ble->startAdvertising();
 
   // notify lights changed
   // if (renderer != nullptr)
