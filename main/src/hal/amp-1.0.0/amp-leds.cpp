@@ -106,6 +106,19 @@ void AmpLeds::setPixel(uint8_t channelNumber, Color color, uint16_t index) {
   (*controller)[index] = color;
 }
 
+Color AmpLeds::getPixel(uint8_t channelNumber, uint16_t index) {
+  if (index >= leds[channelNumber]) {
+    ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", index, channelNumber, leds[channelNumber]);
+    return lightOff;
+  }
+
+  auto controller = channels[channelNumber];
+  if (controller == nullptr)
+    return lightOff;
+
+  return (*controller)[index];
+}
+
 void AmpLeds::setPixels(uint8_t channelNumber, Color color, uint16_t start, uint16_t end) {
   auto controller = channels[channelNumber];
   if (controller == nullptr)

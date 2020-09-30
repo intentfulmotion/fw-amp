@@ -242,6 +242,18 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
       if (numParts == 3)
         params->layer = atoi(parts[2].c_str());
       break;
+    case LightEffect::TheaterChase:
+      if (numParts < 3) {
+        ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
+        return false;
+      }
+
+      params->first = hexToColor(parts[1]);
+      params->duration = atoll(parts[2].c_str());
+
+      if (numParts == 4)
+        params->layer = atoi(parts[2].c_str());
+      break;
     case LightEffect::Scan:
     case LightEffect::ColorWipe:
     case LightEffect::Blink:
@@ -250,7 +262,7 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
     case LightEffect::Twinkle:
     case LightEffect::Sparkle:
     case LightEffect::Alternate:
-    case LightEffect::TheaterChase:
+    case LightEffect::ColorChase:
       if (numParts < 4) {
         ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
         return false;

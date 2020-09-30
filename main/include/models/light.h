@@ -50,6 +50,7 @@ enum LightEffect : uint8_t {
   Scan,
   Rainbow,
   RainbowCycle,
+  ColorChase,
   TheaterChase,
   TheaterChaseRainbow,
   Twinkle,

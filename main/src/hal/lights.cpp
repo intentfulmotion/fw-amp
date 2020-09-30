@@ -150,13 +150,13 @@ void Lights::updateLightForPowerStatus(PowerStatus status) {
     else {
       switch (status.level) {
         case PowerLevel::Critical:
-          leds.setStatus(ColorRGB(127, 0, 0));
+          leds.setStatus(Color(127, 0, 0));
           leds.setBrightness(60);
           safeToLight = false;
           ESP_LOGV(LIGHTS_TAG,"Setting to red critical light");
           break;
         case PowerLevel::Low:
-          leds.setStatus(ColorRGB(127, 127, 0));
+          leds.setStatus(Color(127, 127, 0));
           leds.setBrightness(127);
           safeToLight = true;
           ESP_LOGV(LIGHTS_TAG,"Setting to yellow low light");
@@ -177,7 +177,7 @@ void Lights::updateLightForPowerStatus(PowerStatus status) {
   }
 }
 
-void Lights::setStatus(ColorRGB color) {
+void Lights::setStatus(Color color) {
   leds.setStatus(color);
 }
 
@@ -278,7 +278,7 @@ void Lights::onCalibrateMagEnded() {
 
 void Lights::startCalibrateLight(void* params) {
   Lights* lights = (Lights*)params;
-  auto color = lights->calibratingXG ? ColorRGB(127, 127, 0) : ColorRGB(0, 127, 127);
+  auto color = lights->calibratingXG ? Color(127, 127, 0) : Color(0, 127, 127);
 
   for (;;) {
     lights->setStatus(color);
@@ -306,7 +306,7 @@ void Lights::startUpdateLight(void* params) {
 
 void Lights::startAdvertisingLight(void* params) {
   Lights* lights = (Lights*)params;
-  auto color = ColorRGB(0, 0, 127);
+  auto color = Color(0, 0, 127);
 
   for (;;) {
     lights->setStatus(color);
@@ -420,6 +420,9 @@ void Lights::renderLightingEffect(LightingParameters *params, RenderStep *step) 
     case LightEffect::Rainbow:
       rainbow(params, step);
       break;
+    case LightEffect::ColorChase:
+      colorChase(params, step);
+      break;
     case LightEffect::RainbowCycle:
       rainbowCycle(params, step);
       break;
@@ -459,14 +462,32 @@ void Lights::setRegionPixel(std::string regionName, uint32_t index, Color pixel)
   }
 }
 
-Color Lights::blend(Color first, Color second, uint8_t weight) {
-  Color result;
+Color Lights::getRegionPixel(std::string regionName, uint32_t index) {
+  auto region = lightsConfig->regions[regionName];
+  if (index > region.count)
+    return lightOff;
 
-  result.r = ((first.r * weight) + (second.r * 255U - weight)) / 256U;
-  result.g = ((first.g * weight) + (second.g * 255U - weight)) / 256U;
-  result.b = ((first.b * weight) + (second.b * 255U - weight)) / 256U;
+  uint32_t base = 0;
+  for (int i = 0; i < region.breaks.size(); i++) {
+    if (index <= base + region.breaks[i]) {
+      auto& section = region.sections[i];
+      uint16_t regionIndex = index - base;
+      return leds.getPixel(section.channel, regionIndex);
+    }
+    base += region.breaks[i];
+  }
 
-  return result;
+  return lightOff;
+}
+
+Color Lights::blend(Color first, Color second, float weight) {
+  Color blended;
+
+  blended.r = (uint8_t)(round(first.r * weight) + round(second.r * (1.f - weight)));
+  blended.g = (uint8_t)(round(first.g * weight) + round(second.g * (1.f - weight)));
+  blended.b = (uint8_t)(round(first.b * weight) + round(second.b * (1.f - weight)));
+
+  return blended;
 }
 
 void Lights::color(LightingParameters *params, RenderStep *step) {
@@ -513,8 +534,9 @@ void Lights::breathe(LightingParameters *params, RenderStep *step) {
 void Lights::fade(LightingParameters *params, RenderStep *step) {
   uint16_t lum = step->step % 512;
   if (lum > 255) lum = 511 - lum;
+  float weight = lum / 256.f;
 
-  auto color = blend(params->first, params->second, lum);
+  auto color = blend(params->first, params->second, weight);
   colorRegion(params->region, color);
 
   step->next = millis() + params->duration / 512;
@@ -544,12 +566,11 @@ void Lights::rainbowCycle(LightingParameters *params, RenderStep *step) {
   step->next = millis() + params->duration / 256;
 }
 
-void Lights::theaterChase(LightingParameters *params, RenderStep *step) {
+void Lights::colorChase(LightingParameters *params, RenderStep *step) {
   auto region = lightsConfig->regions[params->region];
   uint8_t index = step->step % 3;
   for (uint32_t i = 0; i < region.count; i++, index++) {
     index %= 3;
-
     Color color;
     switch (index) {
       case 0: color = params->first; break;
@@ -563,11 +584,21 @@ void Lights::theaterChase(LightingParameters *params, RenderStep *step) {
   step->next = millis() + params->duration / 3;
 }
 
+void Lights::theaterChase(LightingParameters *params, RenderStep *step) {
+  auto region = lightsConfig->regions[params->region];
+  bool on = step->step % 2 == 0;
+
+  for (uint32_t i = step->step % 3; i < region.count; i += 3) {
+    if (on) setRegionPixel(params->region, i, params->first);
+    else setRegionPixel(params->region, i, lightOff);
+  }
+
+  step->next = millis() + params->duration;
+}
+
 void Lights::theaterChaseRainbow(LightingParameters *params, RenderStep *step) {
   uint8_t position = step->step % 256;
-  params->first = colorWheel(position);
-  params->second = colorWheel((position + 1) % 256);
-  params->third = colorWheel((position + 2) % 256);
+  params->first = colorWheel(position);  
   theaterChase(params, step);
 }
 

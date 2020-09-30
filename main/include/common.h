@@ -40,15 +40,16 @@
 
 #define IO_PIN_SELECT(x)  (1ULL<<x)
 
-static const ColorRGB ampPink(255, 33, 125);
-static const ColorRGB ampPurple(134, 23, 237);
-static const ColorRGB ampOrange(240, 109, 0);
-static const ColorRGB lightOff(0, 0, 0);
-static const ColorRGB updateStart(0, 0, 127);
-static const ColorRGB updateProgress(0, 127, 0);
-static const ColorRGB updateEnd(127, 127, 0);
-static const ColorRGB updateError(127, 0, 0);
+static const Color ampPink(255, 33, 125);
+static const Color ampPurple(134, 23, 237);
+static const Color ampOrange(240, 109, 0);
+static const Color lightOff(0, 0, 0);
+static const Color updateStart(0, 0, 127);
+static const Color updateProgress(0, 127, 0);
+static const Color updateEnd(127, 127, 0);
+static const Color updateError(127, 0, 0);
 
+#include <FreeRTOS.h>
 #include <memory>
 #include <iostream>
 #include <sstream>

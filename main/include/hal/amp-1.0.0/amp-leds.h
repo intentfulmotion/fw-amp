@@ -50,8 +50,6 @@ class AmpLeds {
   // bool statusDirty = false;
   bool dirty;
 
-  NeoGamma<NeoGammaTableMethod> colorGamma;
-
   public:
     void init();
     void deinit();
@@ -62,6 +60,7 @@ class AmpLeds {
     void setBrightness(uint8_t brightness) { _brightness = brightness; /*FastLED.setBrightness(_brightness);*/ }
 
     void setPixel(uint8_t channelNumber, Color color, uint16_t index);
+    Color getPixel(uint8_t channelNumber, uint16_t index);
     void setPixels(uint8_t channelNumber, Color color, uint16_t start, uint16_t end);
 
     LightController* addLEDStrip(LightChannel data);

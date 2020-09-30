@@ -40,7 +40,7 @@
 
 #define ESP_INTR_FLAG_DEFAULT   0
 
-// ColorRGBs
+// Colors
 // #define AMP_PINK                CRGB(255, 33, 125)
 // #define AMP_PURPLE              CRGB(134, 23, 237)
 // #define AMP_ORANGE              CRGB(240, 109, 0)

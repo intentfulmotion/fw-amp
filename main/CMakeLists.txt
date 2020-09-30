@@ -1,6 +1,5 @@
 idf_component_register(
   SRCS  
-    "src/hal/amp-1.0.0/light-controller.cpp"
     "src/hal/amp-1.0.0/amp-button.cpp"
     "src/hal/amp-1.0.0/amp-imu.cpp"
     "src/hal/amp-1.0.0/amp-leds.cpp"

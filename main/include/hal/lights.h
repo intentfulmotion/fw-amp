@@ -2,6 +2,7 @@
 #include <vector>
 
 #include <common.h>
+#include <math.h>
 #include <queue>
 #include <interfaces/lifecycle.h>
 #include <interfaces/power-listener.h>
@@ -69,7 +70,8 @@ class Lights : public LifecycleBase,
   unsigned long _lastRender = millis();
 
   void setRegionPixel(std::string regionName, uint32_t index, Color pixel);
-  Color blend(Color first, Color second, uint8_t weight);
+  Color getRegionPixel(std::string regionName, uint32_t index);
+  Color blend(Color first, Color second, float weight);
 
   public:
     Lights();
@@ -112,7 +114,7 @@ class Lights : public LifecycleBase,
     std::map<uint8_t, LightChannel> getAvailableChannels();
     std::map<std::string, LightRegion> getAvailableRegions();
 
-    void setStatus(ColorRGB color);
+    void setStatus(Color color);
 
     void colorRegion(std::string regionName, Color color);
     void colorRegionSection(std::string regionName, uint8_t section, Color color);
