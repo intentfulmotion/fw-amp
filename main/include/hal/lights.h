@@ -12,6 +12,7 @@
 #include <interfaces/calibration-listener.h>
 #include <interfaces/update-listener.h>
 #include <models/light.h>
+#include <functional>
 
 #if defined(AMP_1_0_x)
   #include <hal/amp-1.0.0/amp-leds.h>

@@ -112,129 +112,73 @@ void App::process() {
 
 void App::onAccelerationStateChanged(AccelerationState state) {
   ESP_LOGD(APP_TAG, "on acceleration state changed");
-  // if (renderer != NULL) {
-    LightCommand command;
+  LightCommand command;
 
-    switch (state) {
-      case AccelerationState::Braking:
-        command = LightCommand::LightsBrakeActive;
-        break;
-      default:
-      case AccelerationState::Neutral:
-        command = LightCommand::LightsBrakeNormal;
-        break;
-    }
+  switch (state) {
+    case AccelerationState::Braking:
+      command = LightCommand::LightsBrakeActive;
+      break;
+    default:
+    case AccelerationState::Neutral:
+      command = LightCommand::LightsBrakeNormal;
+      break;
+  }
 
-    setBrakes(command);
-  // }
+  setBrakes(command);
 }
 
 void App::onTurnStateChanged(TurnState state) {
-  // if (renderer != NULL) {
-    LightCommand command;
+  LightCommand command;
 
-    switch (state) {
-      case TurnState::Left:
-        command = LightCommand::LightsTurnLeft;
-        break;
-      case TurnState::Right:
-        command = LightCommand::LightsTurnRight;
-        break;
-      case TurnState::Hazard:
-        command = LightCommand::LightsTurnHazard;
-        break;
-      case TurnState::Center:
-      default:
-        command = LightCommand::LightsTurnCenter;
-        break;
-    }
+  switch (state) {
+    case TurnState::Left:
+      command = LightCommand::LightsTurnLeft;
+      break;
+    case TurnState::Right:
+      command = LightCommand::LightsTurnRight;
+      break;
+    case TurnState::Hazard:
+      command = LightCommand::LightsTurnHazard;
+      break;
+    case TurnState::Center:
+    default:
+      command = LightCommand::LightsTurnCenter;
+      break;
+  }
 
-    setTurnLights(command);
-  // }
+  setTurnLights(command);
 }
 
 void App::onOrientationChanged(Orientation state) {
-  // if (renderer != NULL) {
-    LightCommand command;
+  LightCommand command;
 
-    switch (state) {
-      case Orientation::TopSideUp:
-        command = LightCommand::LightsOff;
-        break;
-      default:
-        command = LightCommand::LightsReset;
-        break;
-    }
+  switch (state) {
+    case Orientation::TopSideUp:
+      command = LightCommand::LightsOff;
+      break;
+    default:
+      command = LightCommand::LightsReset;
+      break;
+  }
 
-    setTurnLights(command);
-    setBrakes(command);
-    setHeadlight(command);
-  // }
+  setTurnLights(command);
+  setBrakes(command);
+  setHeadlight(command);
 }
-
-// void App::setLightMode(LightMode mode) {
-//   if (lightMode != mode) {
-//     if (renderHostHandle != NULL) {
-//       vTaskDelete(renderHostHandle);
-//       renderer->shutdown();
-
-//       renderer = NULL;
-//       renderHostHandle = NULL;
-//     }
-
-//     switch (mode) {
-//       case LightMode::TheaterChaseRainbowMode:
-//         renderer = new PatternRenderer(amp->lights, "theater-chase-rainbow");
-//         break;
-//       case LightMode::TheaterChaseMode:
-//         renderer = new PatternRenderer(amp->lights, "theater-chase");
-//         break;
-//       case LightMode::RainbowMode:
-//         renderer = new PatternRenderer(amp->lights, "rainbow");
-//         break;
-//       case LightMode::LightningMode:
-//         renderer = new PatternRenderer(amp->lights, "lightning");
-//         break;
-//       case LightMode::RunningMode:
-//       default:
-//         renderer = new RunningRenderer(amp->lights, config);
-//         amp->lights->render();
-//       break;
-//     }
-
-//     xTaskCreatePinnedToCore(startRenderHost, "renderer", 8 * 1024, this, 5, renderHostHandle, 1);
-//     lightMode = mode;
-
-//     notifyLightsChanged();
-//   }
-// }
-
-// void App::startRenderHost(void *params) {
-//   App *app = (App*)params;
-//   Amp *amp = app->amp;
-
-//   amp->motion.resetMotionDetection();
-  
-//   for (;;) {
-//     if (app->renderer != NULL)
-//       app->renderer->process();
-
-//     delay(50);
-//   }
-
-//   app->renderHostHandle = NULL;
-//   vTaskDelete(NULL);
-// }
 
 void App::setHeadlight(LightCommand command) {
   auto actions = config->actions;
   if (command == LightCommand::LightsReset)
     command = _headlightCommand;
+
   std::string actionName = Lights::headlightActions[command];
+  ESP_LOGI(APP_TAG, "Setting headlight - Command: %d, Action name: %s", command, actionName.c_str());
 
   if (actions.find(actionName) != actions.end()) {
-    for (auto effect : *actions[actionName])
+    for (auto effect : *actions[actionName]) {
+      ESP_LOGI(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
       amp->lights->applyEffect(effect);
+    }
   }
 
   _headlightCommand = command;
@@ -252,7 +196,6 @@ void App::setBrakes(LightCommand command) {
     command = _brakeCommand;
 
   std::string actionName = Lights::brakeActions[command];
-
   ESP_LOGI(APP_TAG, "Setting brakes - Command: %d, Action name: %s", command, actionName.c_str());
 
   if (actions.find(actionName) != actions.end()) {
@@ -276,10 +219,13 @@ void App::setTurnLights(LightCommand command) {
     command = _turnCommand;
 
   std::string actionName = Lights::turnActions[command];
+  ESP_LOGI(APP_TAG, "Setting indicators - Command: %d, Action name: %s", command, actionName.c_str());
   
   if (actions.find(actionName) != actions.end()) {
-    for (auto effect : *actions[actionName])
+    for (auto effect : *actions[actionName]) {
+      ESP_LOGI(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
       amp->lights->applyEffect(effect);
+    }
   }
 
   _turnCommand = command;

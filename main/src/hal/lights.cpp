@@ -13,9 +13,10 @@ std::map<LightCommand, std::string> Lights::brakeActions = {
 };
 
 std::map<LightCommand, std::string> Lights::turnActions = {
-  std::make_pair(LightCommand::LightsOff, "turn-center"),
-  std::make_pair(LightCommand::LightsHeadlightNormal, "turn-left"),
-  std::make_pair(LightCommand::LightsHeadlightBright, "turn-right"),
+  std::make_pair(LightCommand::LightsOff, "turn-off"),
+  std::make_pair(LightCommand::LightsTurnCenter, "turn-center"),
+  std::make_pair(LightCommand::LightsTurnLeft, "turn-left"),
+  std::make_pair(LightCommand::LightsTurnRight, "turn-right"),
   std::make_pair(LightCommand::LightsTurnHazard, "turn-hazard")
 };
 
@@ -352,7 +353,7 @@ void Lights::applyEffect(LightingParameters parameters) {
 
 void Lights::renderer(void *args) {
   auto lights = Lights::instance();
-  std::priority_queue<LightingParameters> compositor;
+  std::priority_queue<LightingParameters, std::vector<LightingParameters>, std::greater<LightingParameters>> compositor;
   std::vector<LightingParameters> staticEffects;
 
   for (;;) {
@@ -384,6 +385,7 @@ void Lights::renderer(void *args) {
       auto next = compositor.top();
       auto& effect = lights->_effects[next.region];
       auto& step = lights->_steps[next.region];
+      ESP_LOGV(LIGHTS_TAG, "Painting effect %d on %s", effect.effect, next.region.c_str());
       lights->renderLightingEffect(&effect, &step);
       compositor.pop();
     }

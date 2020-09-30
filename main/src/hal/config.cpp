@@ -228,6 +228,7 @@ DeviceInfo Config::getDeviceInfo() {
 bool Config::parseEffect(std::string data, LightingParameters *params) {
   auto parts = split(data, ',');
   params->effect = (LightEffect) atoi(parts[0].c_str());
+  params->layer = 0;
   auto numParts = parts.size();
 
   switch (params->effect) {
@@ -290,6 +291,9 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
       break;
     case LightEffect::Off:
       params->first = lightOff;
+
+      if (numParts == 2)
+        params->layer = atoi(parts[1].c_str());
     default:
       break;
   }
