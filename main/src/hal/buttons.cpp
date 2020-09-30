@@ -15,7 +15,7 @@ void Buttons::process() {
   ampButtons.process();
 
   if (touchEnd > touchStart && millis() - touchEnd > touchEventTimeout && touches.size() > 0) {
-    Log::trace("Touch interaction ended. Touches: %d", touches.size());
+    ESP_LOGD(BUTTONS_TAG,"Touch interaction ended. Touches: %d", touches.size());
 
     for (auto listener : touchListeners)
       if (listener->touchEventQueue != NULL)
@@ -28,7 +28,7 @@ void Buttons::process() {
 
 void Buttons::onTouchDown() {
   touchStart = millis();
-  Log::trace("Primary Button: Pressed");
+  ESP_LOGD(BUTTONS_TAG,"Primary Button: Pressed");
 
   bool touch = true;
   for (auto listener : touchListeners)
@@ -39,7 +39,7 @@ void Buttons::onTouchDown() {
 void Buttons::onTouchUp() {
   if (touchEnd < touchStart) {
     touchEnd = millis();
-    Log::trace("Primary Button: Released");
+    ESP_LOGD(BUTTONS_TAG,"Primary Button: Released");
 
     bool touch = false;
     for (auto listener : touchListeners)

@@ -2,7 +2,6 @@
 #include "amp-main.h"
 
 void appLoop(void *params) {
-  Log::setSuffix("\n");
   amp->init();
   
   for (;;) {

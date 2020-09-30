@@ -65,30 +65,30 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
   size_t len = dataStr.length();
 
   if (uuid.equals(_controlCharacteristic->getUUID())) {
-    Log::trace("vehicle control onwrite");
+    ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle control onwrite");
     if (len >= 1 && data[0] != 0x00) {
       bool enableAutoBrakes = data[0] == 0x01;
-      Log::trace("change auto brake detection: %s", enableAutoBrakes ? "enabled" : "disabled");
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change auto brake detection: %s", enableAutoBrakes ? "enabled" : "disabled");
       _motion->setBrakeDetection(enableAutoBrakes);
     }
     if (len >= 2 && data[1] != 0x00) {
       bool enableAutoTurn = data[1] == 0x01;
-      Log::trace("change auto turn detection: %s", enableAutoTurn ? "enabled" : "disabled");
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change auto turn detection: %s", enableAutoTurn ? "enabled" : "disabled");
       _motion->setTurnDetection(enableAutoTurn);
     }
     if (len >= 3 && data[2] != 0x00) {
       bool enableAutoOrientation = data[2] == 0x01;
-      Log::trace("change auto orientation detection: %s", enableAutoOrientation ? "enabled" : "disabled");
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change auto orientation detection: %s", enableAutoOrientation ? "enabled" : "disabled");
       _motion->setOrientationDetection(enableAutoOrientation);
     }      
   }
   else if (uuid.equals(_lightCharacteristic->getUUID())) {
-    Log::trace("vehicle lights onwrite");
+    ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle lights onwrite");
 
     // light mode
     if (len >= 1 && data[0] != 0x00) {
       LightMode mode = (LightMode)data[0];
-      Log::trace("change light mode: %d", mode);
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change light mode: %d", mode);
       if (_renderHost->getLightMode() != mode) {
         if (_renderHost->lightModeQueue != NULL)
           xQueueSendToBack(_renderHost->lightModeQueue, &mode, 0);
@@ -98,30 +98,30 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
     // brake lights
     if (len >= 2 && data[1] != 0x00) {
       LightCommand command = (LightCommand)(data[1]);
-      Log::trace("change brakes: %d", command);
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change brakes: %d", command);
       _renderHost->setBrakes(command);
     }
 
     // head lights
     if (len >= 3 && data[2] != 0x00) {
       LightCommand command = (LightCommand)(data[2]);
-      Log::trace("change headlights: %d", command);
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change headlights: %d", command);
       _renderHost->setHeadlight(command);
     }
 
     // turn lights
     if (len >= 4 && data[3] != 0x00) {
       LightCommand command = (LightCommand)(data[3]);
-      Log::trace("change turn lights: %d", command);
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change turn lights: %d", command);
       _renderHost->setTurnLights(command);
     }
   }
   else if (uuid.equals(_restartCharacteristic->getUUID())) {
-    Log::trace("vehicle restart onwrite: %d", data[0]);
+    ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle restart onwrite: %d", data[0]);
     _power->shutdown(true);
   }
   else if (uuid.equals(_calibrationCharacteristic->getUUID())) {
-    Log::trace("vehicle calibration onwrite");
+    ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle calibration onwrite");
     if (len >= 1) {
       xQueueSendToBack(_motion->calibrationRequestQueue, &data[0], 0);
     }
@@ -129,7 +129,7 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
 }
 
 void VehicleService::onVehicleStateChanged(VehicleState state) {
-  // Log::trace("broadcast vehicle state changed");
+  // ESP_LOGD(VEHICLE_SERVICE_TAG,"broadcast vehicle state changed");
   uint8_t value[3];
   value[0] = state.acceleration;
   value[1] = state.turn;

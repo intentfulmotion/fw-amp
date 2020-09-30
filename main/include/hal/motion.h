@@ -34,6 +34,8 @@
   #include <filters/simple-ahrs.h>
 #endif
 
+static const char* MOTION_TAG = "motion";
+
 class Motion : public LifecycleBase, public PowerListener, public ConfigListener {
   std::vector<MotionListener*> motionListeners;
   std::vector<CalibrationListener*> calibrationListeners;

@@ -12,12 +12,12 @@ Lights::Lights() {
 
 void Lights::onPowerUp() {
   leds.init();
-  Log::trace("Lights started");
+  ESP_LOGD(LIGHTS_TAG,"Lights started");
 }
 
 void Lights::onPowerDown() {
   leds.deinit();
-  Log::trace("Lights stopped");
+  ESP_LOGD(LIGHTS_TAG,"Lights stopped");
 }
 
 void Lights::process() {
@@ -77,7 +77,7 @@ void Lights::onAdvertisingStopped() {
 }
 
 void Lights::onUpdateStatusChanged(UpdateStatus status) {
-  Log::trace("Updating light for update status change");
+  ESP_LOGD(LIGHTS_TAG,"Updating light for update status change");
   if (_updateStatus != status) {
     _updateStatus = status;
 
@@ -105,13 +105,13 @@ void Lights::onUpdateStatusChanged(UpdateStatus status) {
       break;
     }
 
-    leds.render();
+    leds.render(false);
   }
 }
 
 void Lights::onPowerStatusChanged(PowerStatus status) {
   _powerStatus = status;
-  Log::trace("Updating light for power status change");
+  ESP_LOGD(LIGHTS_TAG,"Updating light for power status change");
   updateLightForPowerStatus(status);
 }
 
@@ -120,11 +120,11 @@ void Lights::updateLightForPowerStatus(PowerStatus status) {
     if (status.charging) {
       if (status.level != PowerLevel::Charged) {
         leds.setStatus(ampOrange);
-        Log::verbose("Setting to orange charging light");
+        ESP_LOGV(LIGHTS_TAG,"Setting to orange charging light");
       }
       else {
-        leds.setStatus(ColorRGB(0, 127, 0));
-        Log::verbose("Setting to green charged light");
+        leds.setStatus(Color(0, 127, 0));
+        ESP_LOGV(LIGHTS_TAG,"Setting to green charged light");
       }
     }
     else {
@@ -133,13 +133,13 @@ void Lights::updateLightForPowerStatus(PowerStatus status) {
           leds.setStatus(ColorRGB(127, 0, 0));
           leds.setBrightness(60);
           safeToLight = false;
-          Log::verbose("Setting to red critical light");
+          ESP_LOGV(LIGHTS_TAG,"Setting to red critical light");
           break;
         case PowerLevel::Low:
           leds.setStatus(ColorRGB(127, 127, 0));
           leds.setBrightness(127);
           safeToLight = true;
-          Log::verbose("Setting to yellow low light");
+          ESP_LOGV(LIGHTS_TAG,"Setting to yellow low light");
           break;
         case PowerLevel::Charged:
         case PowerLevel::Unknown:
@@ -148,11 +148,11 @@ void Lights::updateLightForPowerStatus(PowerStatus status) {
           leds.setStatus(ampPink);
           leds.setBrightness(255);
           safeToLight = true;
-          Log::verbose("Setting to amp pink normal light");
+          ESP_LOGV(LIGHTS_TAG,"Setting to amp pink normal light");
           break;
       }
 
-      leds.render();
+      leds.render(true);
     }
   }
 }
@@ -177,7 +177,7 @@ void Lights::onConfigUpdated() {
 
     // don't allow channels 5 - 8 to be added if the corresponding 1 - 4 channel is a DotStar
     if (channelNum < 5 || (channelNum >= 5 && lightsConfig->channels[channelNum - 4].type != 2))
-      channelMap[channel.first] = leds.addLEDStrip(channel.second);
+      controllers[channel.first] = leds.addLEDStrip(channel.second);
   }
 
   init = true;
@@ -199,12 +199,12 @@ void Lights::colorRegion(std::string region, ColorRGB color, ColorRGBW colorExte
   auto result = lightsConfig->regions.find(region);
 
   if (result != lightsConfig->regions.end()) {
-    //Log::verbose("Found region: %s", region.c_str());
+    ESP_LOGV(LIGHTS_TAG,"Found region: %s", region.c_str());
 
     auto region = result->second;
     for (auto section : region.sections) {
-      //Log::verbose("ColorRGB section: %d (%d - %d) -> RGB(%d, %d, %d)", section.channel, section.start, section.end, color.red, color.green, color.blue);
-      colorLEDs(section.channel, section.start, section.end, color, colorExtended);
+      ESP_LOGV(LIGHTS_TAG,"Color section: %d (%d - %d) -> RGB(%d, %d, %d)", section.channel, section.start, section.end, color.r, color.g, color.b);
+      colorLEDs(section.channel, section.start, section.end, color);
     }
   }
 }
@@ -221,22 +221,15 @@ void Lights::colorRegionSection(std::string region, uint8_t sectionIndex, ColorR
   }
 }
 
-void Lights::colorLEDs(uint8_t channel, uint16_t start, uint16_t end, ColorRGB color, ColorRGBW colorExtended) {
-  //Log::verbose("ColorRGB section: %d (%d - %d)", channel, start, end);
-  if (colorExtended == NULL)
-    colorExtended = ColorRGBW(color);
-
-  auto size = channelMap[channel]->PixelSize();
-  bool hasThreeLeds = size == 3;
-  auto corrected = hasThreeLeds ? leds.gammaCorrected(color) : leds.gammaCorrectedRGBW(colorExtended);
-
-  for (uint16_t i = start - 1; i < end; i++)
-    channelMap[channel]->SetPixelColor(i, corrected);
+void Lights::colorLEDs(uint8_t channel, uint16_t start, uint16_t end, Color color) {
+  ESP_LOGV(LIGHTS_TAG,"Color section: %d (%d - %d)", channel, start, end);
+  auto corrected = leds.gammaCorrected(color);
+  leds.setPixels(channel, corrected, start, end);
 }
 
-void Lights::render() {
-  Log::verbose("Rendering lights");
-  leds.render();
+void Lights::render(bool all, int8_t channel) {
+  ESP_LOGV(LIGHTS_TAG,"Rendering lights");
+  leds.render(all, channel);
 }
 
 void Lights::onCalibrateXGStarted() {

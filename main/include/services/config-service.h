@@ -7,6 +7,8 @@
 #include <constants.h>
 #include <hal/config.h>
 
+static const char* CONFIG_SERVICE_TAG = "config-service";
+
 class ConfigService : public NimBLECharacteristicCallbacks {
   Config *_config;
   NimBLEServer *_server;

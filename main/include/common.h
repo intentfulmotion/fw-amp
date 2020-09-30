@@ -1,7 +1,6 @@
 #pragma once
 
 #define AMP_1_0_x
-#define AMP_LOG_LEVEL AMP_LOG_LEVEL_VERBOSE
 
 #define FIRMWARE_VERSION    "1.1.0"
 #define COPYRIGHT_YEAR      2020
@@ -35,9 +34,9 @@
 #define IMU_CS              GPIO_NUM_5
 #define BLE_ENABLED
 
-#include <NeoPixelBus.h>
-#define ColorRGB RgbColor
-#define ColorRGBW RgbwColor
+#include "AddressableLED.h"
+#define Color Rgb
+#define LightController AddressableLED
 
 #define IO_PIN_SELECT(x)  (1ULL<<x)
 
@@ -50,14 +49,15 @@ static const ColorRGB updateProgress(0, 127, 0);
 static const ColorRGB updateEnd(127, 127, 0);
 static const ColorRGB updateError(127, 0, 0);
 
-#include "esp32-hal.h"
-#include <stdint.h>
 #include <memory>
 #include <iostream>
-#include <string>
 #include <cstdio>
-#include <log.h>
 #include "esp_task_wdt.h"
+
+#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
+#include <esp_log.h>
+
+#define PI 3.1415926535897932384626433832795
 
 #define BOOT_NORMAL 1
 #define BOOT_OTA 2
@@ -69,6 +69,22 @@ static const ColorRGB updateError(127, 0, 0);
 #define DEFAULT_ORIENTATION_UP_MIN 70   // degrees
 #define DEFAULT_ORIENTATION_UP_MAX 110  // degrees
 
+inline Color hexStringToColor(std::string fadeColorText) {
+  size_t pos = fadeColorText.find_first_of('#');
+  if (pos != std::string::npos)
+    fadeColorText.erase(pos, 1);
+
+  if (fadeColorText.length() == 6) {
+    uint r; uint g; uint b;
+    sscanf(fadeColorText.substr(0, 2).c_str(), "%02X", &r);
+    sscanf(fadeColorText.substr(2, 4).c_str(), "%02X", &g);
+    sscanf(fadeColorText.substr(4, 6).c_str(), "%02X", &b);
+    return Color(static_cast<uint8_t>(r), static_cast<uint8_t>(g), static_cast<uint8_t>(b));
+  }
+  else
+    return lightOff;
+}
+
 template<typename ... Args>
 inline std::string string_format( const std::string& format, Args ... args )
 {
@@ -76,6 +92,20 @@ inline std::string string_format( const std::string& format, Args ... args )
     std::unique_ptr<char[]> buf( new char[ size ] ); 
     snprintf( buf.get(), size, format.c_str(), args ... );
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
+
+inline unsigned long IRAM_ATTR micros()
+{
+  return (unsigned long) (esp_timer_get_time());
+}
+
+inline unsigned long IRAM_ATTR millis()
+{
+  return (unsigned long) (esp_timer_get_time() / 1000ULL);
+}
+
+inline void delay(uint32_t ms) {
+  vTaskDelay(ms / portTICK_PERIOD_MS);
 }
 
 // power

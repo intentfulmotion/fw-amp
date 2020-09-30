@@ -9,22 +9,22 @@ RunningRenderer::RunningRenderer(Lights *lights, AmpConfig *config) : Renderer(l
 
   // set the turn lights and auto re-apply headlights + brakes
   setTurnLights(LightCommand::LightsReset);
-  Log::trace("Started running renderer");
+  ESP_LOGD(RUNNING_TAG,"Started running renderer");
 }
 
 void RunningRenderer::shutdown() {
-  Log::trace("shutting down running renderer");
+  ESP_LOGD(RUNNING_TAG,"shutting down running renderer");
   brakeInit.give();
   turnInit.give();
 
   if (brakeHandle != nullptr) {
-    Log::trace("Renderer: deleting existing brake task");
+    ESP_LOGD(RUNNING_TAG,"Renderer: deleting existing brake task");
     vTaskDelete(brakeHandle);
     brakeHandle = nullptr;
   }
 
   if (turnHandle != nullptr) {
-    Log::trace("Renderer: deleting existing turn task");
+    ESP_LOGD(RUNNING_TAG,"Renderer: deleting existing turn task");
     vTaskDelete(turnHandle);
     turnHandle = nullptr;
   }
@@ -37,7 +37,7 @@ void RunningRenderer::setBrakes(LightCommand command) {
 
   // end existing brake task
   if (brakeHandle != nullptr || (command != LightsReset && _brakelightCommand == LightsBrake)) {
-    Log::trace("Renderer: deleting existing brake task");
+    ESP_LOGD(RUNNING_TAG,"Renderer: deleting existing brake task");
     vTaskDelete(brakeHandle);
     brakeHandle = nullptr;
   }
@@ -45,7 +45,7 @@ void RunningRenderer::setBrakes(LightCommand command) {
   switch (command) {
     // start a new brake flash process
     case LightCommand::LightsBrake:
-      Log::trace("creating brake process");        
+      ESP_LOGD(RUNNING_TAG,"creating brake process");        
       brakeInit.take("brakes");
       xTaskCreatePinnedToCore(brakeFunction, "brake-light", 2048, this, 5, &brakeHandle, 1);
       break;
@@ -78,7 +78,7 @@ void RunningRenderer::setTurnLights(LightCommand command) {
   // end existing turn light task
   bool isTurnCommand = _turnlightCommand >= LightsTurnLeft && _turnlightCommand <= LightsTurnHazard;
   if (turnHandle != nullptr || (command != LightsReset && isTurnCommand)) {
-    Log::trace("Renderer: deleting existing turn task");
+    ESP_LOGD(RUNNING_TAG,"Renderer: deleting existing turn task");
     vTaskDelete(turnHandle);
     turnHandle = nullptr;
   }
@@ -132,7 +132,7 @@ void RunningRenderer::setHeadlight(LightCommand command) {
 }
 
 void RunningRenderer::brakeFunction(void *args) {
-  Log::trace("Renderer: started brake function");
+  ESP_LOGD(RUNNING_TAG,"Renderer: started brake function");
   RunningRenderer *renderer = (RunningRenderer*)args;
   renderer->brakeInit.give();
 
@@ -155,7 +155,7 @@ void RunningRenderer::brakeFunction(void *args) {
     delay(config->prefs.brakeFlashRate);
   }
 
-  Log::trace("Deleting brake task from inside brake task");
+  ESP_LOGD(RUNNING_TAG,"Deleting brake task from inside brake task");
   vTaskDelete(NULL);
 }
 

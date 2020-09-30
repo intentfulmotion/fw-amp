@@ -3,6 +3,8 @@
 #include <interfaces/renderer.h>
 #include <models/config.h>
 
+static const char* RUNNING_TAG = "running-lights";
+
 class RunningRenderer : public Renderer {
   AmpConfig *_config;
   TaskHandle_t brakeHandle = nullptr;
@@ -16,9 +18,6 @@ class RunningRenderer : public Renderer {
   ColorRGB brightBrake = ColorRGB(255, 0, 0);
   ColorRGB runningBrake = ColorRGB(127, 0, 0);
   ColorRGB turn = ColorRGB(127, 127, 0);
-
-  ColorRGBW extendedBrightHeadlight = ColorRGBW(0, 0, 0, 255);
-  ColorRGBW extendedRunningHeadlight = ColorRGBW(0, 0, 0, 127);
 
   public:
     RunningRenderer(Lights *lights, AmpConfig *config);

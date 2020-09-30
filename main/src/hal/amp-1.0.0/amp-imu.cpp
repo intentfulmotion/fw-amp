@@ -45,7 +45,7 @@ Vector3D AmpIMU::getGyroData() {
 }
 
 void AmpIMU::calibrateMag(Vector3D *offsets) {
-  Log::trace("Calibrate mag not implemented");
+  ESP_LOGD(IMU_TAG,"Calibrate mag not implemented");
   // imu.calibrateMag(true);
 
   // offsets->x = imu.mBias[0];
@@ -54,7 +54,7 @@ void AmpIMU::calibrateMag(Vector3D *offsets) {
 }
 
 void AmpIMU::calibrateXG(Vector3D *outOffsets) {
-  Log::trace("Calibrate XG not implemented");
+  ESP_LOGD(IMU_TAG,"Calibrate XG not implemented");
   // imu.calibrate(false);
   
   // outOffsets[0].x = imu.aBias[0];

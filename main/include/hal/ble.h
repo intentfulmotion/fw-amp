@@ -17,6 +17,8 @@
 
 #define PUBLIC_ADVERTISEMENT_MS   15000
 
+static const char* BLE_TAG = "ble";
+
 class BluetoothLE : public LifecycleBase, public ConfigListener, public TouchListener, public NimBLEServerCallbacks {
   NimBLEAdvertising *advertising;
   NimBLEAdvertisementData advertisementData;

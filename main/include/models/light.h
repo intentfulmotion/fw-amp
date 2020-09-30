@@ -19,7 +19,7 @@ enum StripType : uint8_t {
 struct LightChannel {
   uint8_t channel;
   uint16_t leds;
-  StripType type;
+  LEDType type;
 };
 
 struct LightSection {

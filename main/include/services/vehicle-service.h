@@ -8,6 +8,8 @@
 #include <interfaces/motion-listener.h>
 #include <interfaces/render-host.h>
 
+static const char* VEHICLE_SERVICE_TAG = "vehicle-service";
+
 class VehicleService : public NimBLECharacteristicCallbacks, public MotionListener, public CalibrationListener, public RenderListener {
   Motion *_motion;
   Power *_power;

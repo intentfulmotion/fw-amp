@@ -4,12 +4,6 @@
 [submodule "components/lis3dh"]
 	path = components/lis3dh
 	url = https://github.com/intentfulmotion/lis3dh-esp-idf
-[submodule ".\\components\\NeoPixelBus-idf"]
-	path = .\\components\\NeoPixelBus-idf
-	url = https://github.com/intentfulmotion/NeoPixelBus-idf
-[submodule "components/NeoPixelBus-idf"]
-	path = components/NeoPixelBus-idf
-	url = https://github.com/intentfulmotion/NeoPixelBus-idf.git
-[submodule "components/esp-arduino-shim"]
-	path = components/esp-arduino-shim
-	url = https://github.com/intentfulmotion/esp-arduino-shim.git
+[submodule "components/AddressableLED"]
+	path = components/AddressableLED
+	url = https://github.com/intentfulmotion/AddressableLED.git

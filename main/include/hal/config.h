@@ -17,6 +17,8 @@
   #include <hal/amp-1.0.0/amp-storage.h>
 #endif
 
+static const char* CONFIG_TAG = "config";
+
 class Config : public LifecycleBase {
   std::vector<ConfigListener*> configListeners;
   AmpStorage ampStorage;

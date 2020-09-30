@@ -12,6 +12,8 @@
 
 #include <memory>
 
+static const char* BUTTONS_TAG = "buttons";
+
 class Buttons : public LifecycleBase, public TouchTaskListener {
   std::vector<TouchListener*> touchListeners;
   std::vector<TouchType> touches;
