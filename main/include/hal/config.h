@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #define ARDUINOJSON_ENABLE_STD_STRING 1
 #include <ArduinoJson.h>
@@ -19,11 +20,28 @@
 
 static const char* CONFIG_TAG = "config";
 
+struct MsgPackFileWriter {
+  FILE *_file;
+
+  size_t write(uint8_t c) { return fputc(c, _file); }
+  size_t write(const uint8_t *buffer, size_t length) { return fwrite(buffer, sizeof(uint8_t), length, _file); }
+
+  MsgPackFileWriter(FILE *file) : _file(file) { }
+};
+
+struct MsgPackFileReader {
+  FILE *_file;
+
+  int read() { return fgetc(_file); }
+  size_t readBytes(char* buffer, size_t length) { return fread((void*) buffer, sizeof(uint8_t), length, _file); }
+
+  MsgPackFileReader(FILE *file) : _file(file) { }
+};
+
 class Config : public LifecycleBase {
   std::vector<ConfigListener*> configListeners;
   AmpStorage ampStorage;
   
-  StaticJsonDocument<5000> document;
   std::string rawConfig;
   std::string renderer;
 
@@ -32,6 +50,7 @@ class Config : public LifecycleBase {
 
   std::string configPath = "/spiffs/config.mp";
 
+  JsonObject serializeEffects();
   static bool parseEffect(std::string data, LightingParameters *params);
 
   public:
@@ -54,7 +73,12 @@ class Config : public LifecycleBase {
     void notifyConfigListeners();
 
     void updateDeviceName(std::string name);
+    bool addEffect(std::string action, std::string region, std::string data, bool updateJson = false);
+    // void removeEffect(std::string, std::string region, bool updateJson = false);
+    std::vector<LightingParameters>* getActionEffects(std::string action);
 
     bool isValid() { return _valid; }
     std::string getRawConfig() { return rawConfig; }
+
+    static FreeRTOS::Semaphore effectsUpdating;
 };

@@ -156,6 +156,12 @@ void App::onOrientationChanged(Orientation state) {
     case Orientation::TopSideUp:
       command = LightCommand::LightsOff;
       break;
+    case Orientation::FrontSideUp:
+    case Orientation::BackSideUp:
+      setTurnLights(LightCommand::LightsTurnCenter);
+      setBrakes(LightCommand::LightsBrakeNormal);
+      setHeadlight(LightCommand::LightsHeadlightNormal);
+      return;
     default:
       command = LightCommand::LightsReset;
       break;
@@ -176,7 +182,7 @@ void App::setHeadlight(LightCommand command) {
 
   if (actions.find(actionName) != actions.end()) {
     for (auto effect : *actions[actionName]) {
-      ESP_LOGI(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
+      ESP_LOGD(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
       amp->lights->applyEffect(effect);
     }
   }
@@ -200,7 +206,7 @@ void App::setBrakes(LightCommand command) {
 
   if (actions.find(actionName) != actions.end()) {
     for (auto effect : *actions[actionName]) {
-      ESP_LOGI(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
+      ESP_LOGD(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
       amp->lights->applyEffect(effect);
     }
   }
@@ -223,7 +229,7 @@ void App::setTurnLights(LightCommand command) {
   
   if (actions.find(actionName) != actions.end()) {
     for (auto effect : *actions[actionName]) {
-      ESP_LOGI(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
+      ESP_LOGD(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
       amp->lights->applyEffect(effect);
     }
   }

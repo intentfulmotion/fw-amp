@@ -69,8 +69,7 @@ enum LightCommand {
   LightsTurnCenter,
   LightsTurnLeft,
   LightsTurnRight,
-  LightsTurnHazard,
-  LightCustom
+  LightsTurnHazard
 };
 
 struct LightCommands {

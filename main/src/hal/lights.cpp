@@ -340,9 +340,8 @@ Color Lights::randomColor() {
 
 void Lights::applyEffect(LightingParameters parameters) {
   auto region = parameters.region;
-  // remove existing lighting effect for the region
-  // TODO: maybe add a mutex to protect access?
 
+  // replace existing effect if it exists + reset render steps
   if (lightsConfig->regions.find(region) != lightsConfig->regions.end()) {
     _effects[region] = parameters;
     _steps[region] = { 0, millis() };

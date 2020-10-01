@@ -29,19 +29,19 @@ void ConfigService::setupService() {
 void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
   std::string uuid = characteristic->getUUID().toString();
   std::string received = characteristic->getValue();
-  ESP_LOGV(CONFIG_SERVICE_TAG, "Received: %s", received.c_str());
+  ESP_LOGD(CONFIG_SERVICE_TAG, "Received: %s", received.c_str());
 
   if (uuid.compare(configRxCharacteristicUUID) == 0) {
-    std::size_t partialMarker = received.find_first_of("##");
+    std::size_t partialMarker = received.find("##");
     if (partialMarker == std::string::npos) {
       // this is a single packet
-      ESP_LOGV(CONFIG_SERVICE_TAG, "Single packet data: %s", received.c_str());
+      ESP_LOGD(CONFIG_SERVICE_TAG, "Single packet data: %s", received.c_str());
       processCommand(received);
     }
     else {
       uint8_t totalPackets = (uint8_t)received[2];
       uint8_t currentPacket = (uint8_t)received[3];
-      ESP_LOGV(CONFIG_SERVICE_TAG, "Received partial packet %d/%d", currentPacket, totalPackets);
+      ESP_LOGD(CONFIG_SERVICE_TAG, "Received partial packet %d/%d", currentPacket, totalPackets);
 
       // clear the buffer if we've received a new first packet
       if (currentPacket == 1)
@@ -77,22 +77,40 @@ void ConfigService::processCommand(std::string data) {
       if (_config->isValid())
         _config->saveConfig();
     }
-    else if (key == "conf") {
-      std::size_t configValueLocation = data.find_first_of("=");
-      if (configValueLocation == std::string::npos)
-        ESP_LOGW(CONFIG_SERVICE_TAG, "Missing '=' in configuration setting");
-      else {
-        std::string configKey = value.substr(0, configValueLocation);
-        std::string configValue = value.substr(configValueLocation);
-
-        // TODO: update config using keys
-      }
-    }
     else if (key == "name") {
       // limit to 100 characters
       std::string name = value.substr(0, std::min((int) value.length(), 100));
       AmpStorage::saveDeviceName(name);
       BluetoothLE::instance()->updateAdvertising(name, true);
+    }
+    else if (key == "effect" || key == "saveEffect") {
+      bool save = key == "saveEffect";
+      size_t actionLocation = value.find_first_of(",");
+      std::string action = value.substr(0, actionLocation);
+      std::string regionString = value.substr(actionLocation + 1);
+      size_t regionLocation = regionString.find_first_of(",");
+      std::string region = regionString.substr(0, regionLocation);
+      std::string effect = regionString.substr(regionLocation + 1);
+
+      bool valid = _config->addEffect(action, region, effect, save);
+      if (valid) {
+        ESP_LOGI(CONFIG_SERVICE_TAG, "Effect received - action: %s region: %s effect: %s",
+          action.c_str(), region.c_str(), effect.c_str());
+        
+        if (save)
+          _config->saveConfig();
+      }
+      else
+        ESP_LOGW(CONFIG_SERVICE_TAG, "Invalid effect received - action: %s region: %s effect: %s",
+          action.c_str(), region.c_str(), effect.c_str());
+    }
+    else if (key == "removeEffect") {
+      // size_t actionLocation = value.find_first_of(",");
+      // std::string action = value.substr(0, actionLocation);
+      // std::string region = value.substr(actionLocation + 1);
+
+      // _config->removeEffect(action, region, true);
+      // _config->saveConfig();
     }
     else if (key == "get") {
       if (value == "config") {
@@ -102,6 +120,8 @@ void ConfigService::processCommand(std::string data) {
         transmit(prefix.append(configData));
       }
     }
+    else if (key == "save")
+      _config->saveConfig();
   }
 }
 

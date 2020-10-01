@@ -14,7 +14,7 @@
 			{ "region": "brake", "effect": "0" }
 		],
 		"brake-normal": [
-			{ "region": "brake", "effect": "1,#800000" }
+			{ "region": "brake", "effect": "1,#800000,1" }
 		],
 		"brake-active": [
 			{ "region": "brake", "effect": "2,#800000,#FF0000,100,1" }
@@ -23,10 +23,10 @@
 			{ "region": "brake", "effect": "0" }
 		],
 		"headlight-normal": [
-			{ "region": "headlight", "effect": "1,#7F7F7F" }
+			{ "region": "headlight", "effect": "1,#7F7F7F,1" }
 		],
 		"headlight-bright": [
-			{ "region": "headlight", "effect": "1,#FFFFFF" }
+			{ "region": "headlight", "effect": "1,#FFFFFF,1" }
 		],
 		"turn-center": [
 			{ "region": "left", "effect": "0" },

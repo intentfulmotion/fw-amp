@@ -58,7 +58,7 @@ static const Color updateError(127, 0, 0);
 #include <cstdio>
 #include "esp_task_wdt.h"
 
-#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+#define LOG_LOCAL_LEVEL ESP_LOG_INFO
 #include <esp_log.h>
 
 #define PI 3.1415926535897932384626433832795

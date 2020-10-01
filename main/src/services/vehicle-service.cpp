@@ -85,33 +85,23 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
   else if (uuid.equals(_lightCharacteristic->getUUID())) {
     ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle lights onwrite");
 
-    // light mode
-    // if (len >= 1 && data[0] != 0x00) {
-    //   LightMode mode = (LightMode)data[0];
-    //   ESP_LOGD(VEHICLE_SERVICE_TAG,"change light mode: %d", mode);
-    //   if (_renderHost->getLightMode() != mode) {
-    //     if (_renderHost->lightModeQueue != NULL)
-    //       xQueueSendToBack(_renderHost->lightModeQueue, &mode, 0);
-    //   }
-    // }
-
     // brake lights
-    if (len >= 2 && data[1] != 0x00) {
-      LightCommand command = (LightCommand)(data[1]);
+    if (len >= 1 && data[0] != 0x00) {
+      LightCommand command = (LightCommand)(data[0]);
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change brakes: %d", command);
       _renderHost->setBrakes(command);
     }
 
     // headlights
-    if (len >= 3 && data[2] != 0x00) {
-      LightCommand command = (LightCommand)(data[2]);
+    if (len >= 2 && data[1] != 0x00) {
+      LightCommand command = (LightCommand)(data[1]);
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change headlights: %d", command);
       _renderHost->setHeadlight(command);
     }
 
     // turn lights
-    if (len >= 4 && data[3] != 0x00) {
-      LightCommand command = (LightCommand)(data[3]);
+    if (len >= 3 && data[3] != 0x00) {
+      LightCommand command = (LightCommand)(data[2]);
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change turn lights: %d", command);
       _renderHost->setTurnLights(command);
     }

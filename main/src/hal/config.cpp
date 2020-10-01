@@ -1,6 +1,10 @@
 #include <hal/config.h>
+#include <hal/lights.h>
 
 AmpConfig Config::ampConfig;
+StaticJsonDocument<10000> document;
+
+FreeRTOS::Semaphore Config::effectsUpdating = FreeRTOS::Semaphore("effects");
 
 void Config::onPowerUp() {
   if (!ampStorage.init()) {
@@ -48,11 +52,12 @@ void Config::saveConfig() {
     return;
   }
 
+  // serialize effects
   ESP_LOGD(CONFIG_TAG,"Writing config to file");
-  char buffer[1024];
-  auto size = serializeMsgPack(document.as<JsonObject>(), buffer);
 
-  fwrite(buffer, 1, size, file);
+  MsgPackFileWriter writer(file);
+  serializeMsgPack(document, writer);
+
   fclose(file);
 }
 
@@ -184,28 +189,24 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
 }
 
 void Config::loadActionConfig(JsonObject actionJson) {
-  std::map<std::string, std::vector<LightingParameters>*> actions;
-
   for (auto actionPair : actionJson) {
     std::string action = std::string(actionPair.key().c_str());
-    actions[action] = new std::vector<LightingParameters>();
     JsonArray regionEffects = actionPair.value().as<JsonArray>();
     
     // parse all regional effects for action
     for (auto regionEffect : regionEffects) {
       if (regionEffect.containsKey("region") && regionEffect.containsKey("effect")) {
-        LightingParameters effect;
-
-        // validate and add lighting effect
-        if (parseEffect(regionEffect["effect"], &effect)) {
-          effect.region = regionEffect["region"].as<std::string>();
-          actions[action]->push_back(effect);
-        }
+        std::string region = regionEffect["region"].as<std::string>();
+        std::string effect = regionEffect["effect"].as<std::string>();
+        if (!addEffect(action, region, effect))
+          ESP_LOGW(CONFIG_TAG, "Unable to add effect - action: %s\tregion: %s\teffect: %s", 
+            action.c_str(), region.c_str(), effect.c_str());
+        else
+          ESP_LOGD(CONFIG_TAG, "Added effect - action: %s\tregion: %s\teffect: %s",
+            action.c_str(), region.c_str(), effect.c_str());
       }
     }
   }
-
-  ampConfig.actions = actions;
 }
 
 std::string Config::readFile(std::string filename) {
@@ -224,6 +225,114 @@ DeviceInfo Config::getDeviceInfo() {
 
   return info;
 }
+
+bool Config::addEffect(std::string action, std::string region, std::string data, bool updateJson) {
+  effectsUpdating.wait(CONFIG_TAG);
+  effectsUpdating.take(CONFIG_TAG);
+
+  bool found = false;
+
+  for (auto const& [command, actionName] : Lights::headlightActions)
+    if (actionName.compare(action) == 0) {
+      found = true;
+      break;
+    }
+
+  if (!found)
+    for (auto const& [command, actionName] : Lights::turnActions)
+      if (actionName.compare(action) == 0) {
+        found = true;
+        break;
+      }
+
+  if (!found)
+    for (auto const& [command, actionName] : Lights::brakeActions)
+      if (actionName.compare(action) == 0) {
+        found = true;
+        break;
+      }
+
+  if (!found)
+    return false;
+
+  LightingParameters effect;
+  if (!parseEffect(data, &effect))
+    return false;
+
+  effect.region = region;
+
+  if (ampConfig.actions.find(action) == ampConfig.actions.end())
+    ampConfig.actions[action] = new std::vector<LightingParameters>();
+
+  ampConfig.actions[action]->push_back(effect);
+
+  if (updateJson) {
+    auto actionsRoot = document["actions"].as<JsonObject>();
+    JsonArray actionRoot;
+
+    if (!actionsRoot.containsKey(action))
+      actionRoot = actionsRoot.createNestedArray(action);
+    else 
+      actionRoot = actionsRoot[action].as<JsonArray>();
+
+    bool foundJson = false;
+    for (auto effect : actionRoot) {
+      if (effect[region].as<std::string>().compare(region) == 0) {
+        foundJson = true;
+        effect["effect"] = data.c_str();
+      }
+    }
+    if (!foundJson) {
+      auto effectRoot = actionRoot.createNestedObject();
+      effectRoot["region"] = region.c_str();
+      effectRoot["effect"] = data.c_str();
+    }
+  }
+
+  effectsUpdating.give();  
+
+  return true;
+}
+
+std::vector<LightingParameters>* Config::getActionEffects(std::string action) {
+  if (ampConfig.actions.find(action) == ampConfig.actions.end())
+    return NULL;
+
+  return ampConfig.actions[action];
+}
+
+// void Config::removeEffect(std::string action, std::string region, bool updateJson) {
+//   effectsUpdating.wait(CONFIG_TAG);
+//   effectsUpdating.take(CONFIG_TAG);
+
+//   if (ampConfig.actions.find(action) == ampConfig.actions.end())
+//     return;
+  
+//   for (auto it = ampConfig.actions[action]->begin(); it != ampConfig.actions[action]->end(); ++it) {
+//     auto effect = *it;
+//     if (effect.region.compare(region) == 0)
+//       ampConfig.actions[action]->erase(it);
+//   }
+
+//   if (updateJson) {
+//     auto actionsRoot = document["actions"].as<JsonObject>();
+//     if (!actionsRoot.containsKey(action))
+//       return;
+
+//     auto actionRoot = actionsRoot[action];
+//     for (int i = 0; i < actionRoot.size(); i++) {
+//       auto effect = actionRoot[i];
+//       if (strcmp(effect["region"], region.c_str()) == 0) {
+//         ESP_LOGD(CONFIG_TAG, "Found effect - removing %s for %s", action.c_str(), region.c_str());
+//         actionRoot.remove(i);
+//         document.garbageCollect();
+//         break;
+//       }
+//     }
+//   }
+
+//   effectsUpdating.give();
+// }
 
 bool Config::parseEffect(std::string data, LightingParameters *params) {
   auto parts = split(data, ',');
