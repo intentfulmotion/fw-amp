@@ -344,7 +344,7 @@ void Lights::applyEffect(LightingParameters parameters) {
   // replace existing effect if it exists + reset render steps
   if (lightsConfig->regions.find(region) != lightsConfig->regions.end()) {
     _effects[region] = parameters;
-    _steps[region] = { 0, millis() };
+    _steps[region] = { 0, millis(), 0 };
   }
   else
     ESP_LOGW(LIGHTS_TAG, "Cannot apply effect - Region %s does not exist.", region.c_str());
@@ -608,7 +608,17 @@ void Lights::twinkle(LightingParameters *params, RenderStep *step) {
 }
 
 void Lights::sparkle(LightingParameters *params, RenderStep *step) {
-  step->next = REFRESH_NEVER;
+  auto region = lightsConfig->regions[params->region];
+
+  if (step->step == 0)
+    colorRegion(params->region, params->first);
+  else
+    setRegionPixel(params->region, step->tempPixel, params->first);
+
+  step->tempPixel = rand() % region.count;
+  setRegionPixel(params->region, step->tempPixel, params->second);
+
+  step->next = params->duration / region.count;
 }
 
 void Lights::alternate(LightingParameters *params, RenderStep *step) {

@@ -91,6 +91,7 @@ struct LightingParameters {
 struct RenderStep {
   unsigned long step;
   unsigned long next;
+  uint32_t tempPixel;
 };
 
 inline bool operator< (const LightingParameters& lhs, const LightingParameters& rhs){ return lhs.layer < rhs.layer; }
