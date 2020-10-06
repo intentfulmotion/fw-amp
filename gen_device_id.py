@@ -2,7 +2,7 @@ import argparse, sys, re
 parser = argparse.ArgumentParser()
 
 # Hardware Revision Pattern (Semantic Versioned) e.g. 0.1.0
-hw_pattern = re.compile("^[\d+]*[.][\d]*[.][\d]*$")
+hw_pattern = re.compile("^([0-9]+)\.([0-9]+)\.([0-9]+)$")
 
 # Serial Number Pattern
 # A##-YYWW-####
@@ -31,8 +31,12 @@ def get_sn_bytes():
   unique_two = int("0x{0}".format(split_sn[2][2:]), 16)
   return [model, year, week, unique_one, unique_two]
 
-if not args.hw or not args.sn or not bool(hw_pattern.match(args.hw)) or not bool(sn_pattern.match(args.sn)):
+hw_result = hw_pattern.match(args.hw)
+sn_result = sn_pattern.match(args.sn)
+
+if not args.hw or not args.sn or hw_result is None or sn_result is None:
   print("valid hw and sn required")
+  exit()
 
 if (not args.output):
   filename = "device_id.bin"
