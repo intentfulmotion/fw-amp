@@ -1,6 +1,6 @@
 # Amp Firmware
 
-Firmware powering the Amp smart lighting controller. Built on ESP-IDF 4.1.
+Firmware powering the Amp smart lighting controller. Built on a slightly modified [ESP-IDF 4.1](https://github.com/intentfulmotion/esp-idf).
 
 ## Features
 * Automatic brake lights
