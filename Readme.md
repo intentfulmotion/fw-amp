@@ -21,12 +21,22 @@ Firmware powering the Amp smart lighting controller. Built on a slightly modifie
 
 ## Dependencies
 
-* [esp-nimble-cpp](https://github.com/intentfulmotion/esp-nimble-cpp) - modified version of https://github.com/h2zero/esp-nimble-cpp
-* [FastLED-idf](https://github.com/intentfulmotion/FastLED-idf) - modified version of https://github.com/bbulkow/FastLED-idf
-* [lis3dh-esp-idf](https://github.com/intentfulmotion/lis3dh-esp-idf) - modified version of https://github.com/gschorcht/lis3dh-esp-idf
+* [esp-nimble-cpp](https://github.com/intentfulmotion/esp-nimble-cpp)
+* [AddressableLED](https://github.com/intentfulmotion/AddressableLED)
+* [lis3dh-esp-idf](https://github.com/intentfulmotion/lis3dh-esp-idf)
 
 ## Build from source
 
 1. `idf.py menuconfig` and configure the IDF project. This project uses the NimBLE stack instead of Bluedroid
 2. `idf.py build` to build the project
 3. `idf.py flash -p <port>` to flash it to an Amp / ESP32
+
+## Credits
+
+Parts of this software include derivations of other open source software. A full list is available below:
+
+* [WS2812FX](https://github.com/kitesurfer1404/WS2812FX) by Harm Aldick
+* [SmartLeds](https://github.com/RoboticsBrno/SmartLeds) by RoboticsBrno
+* [esp-nimble-cpp](https://github.com/h2zero/esp-nimble-cpp) by h2zero
+* [lis3dh-esp-idf](https://github.com/gschorcht/lis3dh-esp-idf) by Gunar Schorcht
+* [esp-idf](https://github.com/espressif/esp-idf) by Espressif
