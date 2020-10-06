@@ -10,6 +10,6 @@ class TouchListener {
 
 class TouchTaskListener {
   public:
-    virtual void onTouchDown();
-    virtual void onTouchUp();
+    virtual void onTouchDown() = 0;
+    virtual void onTouchUp() = 0;
 };

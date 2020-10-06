@@ -2,7 +2,6 @@
 #include "FreeRTOS.h"
 
 #include <amp.h>
-#include <interfaces/renderer.h>
 #include <interfaces/lifecycle.h>
 #include <interfaces/motion-listener.h>
 #include <interfaces/render-host.h>
@@ -15,8 +14,7 @@
   #include <services/update-service.h>
 #endif
 
-#include <renderers/running.h>
-#include <renderers/pattern.h>
+static const char* APP_TAG = "app";
 
 class App : public LifecycleBase, public ConfigListener, public MotionListener, public RenderHost {
   TaskHandle_t *renderHostHandle = NULL;
@@ -24,8 +22,11 @@ class App : public LifecycleBase, public ConfigListener, public MotionListener, 
   AmpConfig *config;
   VehicleState vehicleState;
   bool _renderHostActive = false;
-  Renderer *renderer = NULL;
   std::vector<RenderListener*> renderListeners;
+
+  LightCommand _brakeCommand = LightCommand::LightsBrakeNormal;
+  LightCommand _headlightCommand = LightCommand::LightsHeadlightNormal;
+  LightCommand _turnCommand = LightCommand::LightsTurnCenter;
 
 #if defined(BLE_ENABLED)
   // services
@@ -42,7 +43,7 @@ class App : public LifecycleBase, public ConfigListener, public MotionListener, 
     void onPowerDown();
     void process();
     void onConfigUpdated();
-    void setLightMode(LightMode mode);
+    // void setLightMode(LightMode mode);
     void addRenderListener(RenderListener* listener) { renderListeners.push_back(listener); }
 
     void onAccelerationStateChanged(AccelerationState state);

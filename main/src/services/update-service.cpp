@@ -52,18 +52,18 @@ void UpdateService::onWrite(NimBLECharacteristic* characteristic) {
   std::string dataStr = characteristic->getValue();
 
   if (uuid.equals(_updateControlCharacteristic->getUUID())) {
-    Log::trace("update control");
+    ESP_LOGD(UPDATE_SERVICE_TAG,"update control");
     const char* data = dataStr.data();
     size_t len = sizeof(data);
 
     if (len >= 1) {
       switch (data[0]) {
         case UpdateStatus::Start:
-          Log::trace("Start update");
+          ESP_LOGD(UPDATE_SERVICE_TAG,"Start update");
           _updater->startUpdate();
           break;
         case UpdateStatus::End:
-          Log::trace("End update");
+          ESP_LOGD(UPDATE_SERVICE_TAG,"End update");
           _updater->endUpdate();
           break;
         default: break;
@@ -71,7 +71,7 @@ void UpdateService::onWrite(NimBLECharacteristic* characteristic) {
     }
   }
   if (uuid.equals(_updateRxCharacteristic->getUUID())) {
-    Log::trace("update data - length: %d", dataStr.length());
+    ESP_LOGD(UPDATE_SERVICE_TAG,"update data - length: %d", dataStr.length());
     _updater->writeUpdate(dataStr);
   }
 }

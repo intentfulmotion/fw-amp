@@ -9,7 +9,7 @@ Buttons Amp::buttons;
 Config Amp::config;
 
 #ifdef BLE_ENABLED
-BluetoothLE Amp::ble;
+BluetoothLE* Amp::ble = BluetoothLE::instance();
 #endif
 
 void Amp::init() {
@@ -23,7 +23,7 @@ void Amp::init() {
   power->addLifecycleListener(lights);
 
 #ifdef BLE_ENABLED
-  power->addLifecycleListener(&ble);
+  power->addLifecycleListener(ble);
 #endif
 
   power->addLifecycleListener(&config);
@@ -32,20 +32,16 @@ void Amp::init() {
   config.addConfigListener(&motion);
   config.addConfigListener(lights);
 
-#ifdef BLE_ENABLED
-  config.addConfigListener(&ble);
-#endif
-
   // listen to touch changes
   buttons.addTouchListener(lights);
   buttons.addTouchListener(power);
 
 #ifdef BLE_ENABLED
   // listen to touches to start advertising
-  buttons.addTouchListener(&ble);
+  buttons.addTouchListener(ble);
 
   // listen to advertising changes
-  ble.addAdvertisingListener(lights);
+  ble->addAdvertisingListener(lights);
 #endif
 
   // listen to ota update status changes
@@ -65,7 +61,6 @@ void Amp::process() {
   Power::powerDown.wait("power");
 
   power->process();
-  lights->process();
 
   if (app != nullptr)
     app->process();

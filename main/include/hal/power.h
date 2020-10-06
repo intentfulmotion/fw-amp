@@ -15,6 +15,8 @@
   #include <hal/amp-1.0.0/amp-power.h>
 #endif
 
+static const char* POWER_TAG = "power";
+
 class Power : public LifecycleBase, public TouchListener {
   std::vector<PowerListener*> powerLevelListeners;
   std::vector<LifecycleBase*> lifecycleListeners;

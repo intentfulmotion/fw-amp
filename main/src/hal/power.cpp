@@ -19,7 +19,7 @@ void Power::onPowerUp() {
 }
 
 void Power::onPowerDown() {
-  Log::trace("Powering down");
+  ESP_LOGD(POWER_TAG,"Powering down");
 
   if (restartNext)
     esp_restart();
@@ -54,7 +54,7 @@ void Power::addLifecycleListener(LifecycleBase *listener) {
 }
 
 void Power::notifyPowerListeners() {
-  Log::verbose("Power status notification: Charging: %s, Level: %d (%d %%), Battery Present: %s", status.charging ? "true" : "false", status.level, status.percentage, status.batteryPresent ? "true" : "false");
+  ESP_LOGV(POWER_TAG,"Power status notification: Charging: %s, Level: %d (%d %%), Battery Present: %s", status.charging ? "true" : "false", status.level, status.percentage, status.batteryPresent ? "true" : "false");
 
   for(auto listener : powerLevelListeners)
     if (listener->powerStatusQueue != NULL)

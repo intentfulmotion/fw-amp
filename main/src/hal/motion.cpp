@@ -13,10 +13,10 @@ Motion::Motion() {
 void Motion::onPowerUp() {
   if (!ampIMU.init()) {
     imuState = IMU_Error;
-    Log::error("Error starting motion");
+    ESP_LOGE(MOTION_TAG,"Error starting motion");
   }
   else {
-    Log::trace("Motion started");
+    ESP_LOGD(MOTION_TAG,"Motion started");
     _turnZero = AmpStorage::getTurnZero();
     // load motion biases
     AmpStorage::getAccelBias(&accelBias);
@@ -53,7 +53,7 @@ void Motion::sampleTask(void *parameters) {
     }
 
     if (old != motion->_vehicleState) {
-      Log::trace("vehicle state changed in motion");
+      ESP_LOGD(MOTION_TAG,"vehicle state changed in motion");
 
       for (auto listener : motion->motionListeners)
         if (listener->vehicleQueue != NULL)
@@ -69,7 +69,7 @@ void Motion::sampleTask(void *parameters) {
 }
 
 void Motion::onPowerDown() {
-  Log::trace("Motion on power down");
+  ESP_LOGD(MOTION_TAG,"Motion on power down");
   imuState = IMUState::IMU_Disabled;
   ampIMU.deinit();
 }
@@ -90,7 +90,7 @@ void Motion::updateMotionForPowerStatus(PowerStatus status) {
       switch (_powerStatus.level) {
         case PowerLevel::Low:
           imuState = IMUState::IMU_LowPower;
-          Log::verbose("IMU: Low power mode");
+          ESP_LOGV(MOTION_TAG,"IMU: Low power mode");
           _sampleRate = 1500; // 1.5 kHz
 
 #if defined(USE_MADGWICK_FILTER)
@@ -102,7 +102,7 @@ void Motion::updateMotionForPowerStatus(PowerStatus status) {
         case PowerLevel::Normal:
         case PowerLevel::Charged:
           imuState = IMUState::IMU_Normal;
-          Log::verbose("IMU: Normal, high power mode");
+          ESP_LOGV(MOTION_TAG,"IMU: Normal, high power mode");
           _sampleRate = 50000;  // 50 kHz
 
 #if defined(USE_MADGWICK_FILTER)
@@ -115,7 +115,7 @@ void Motion::updateMotionForPowerStatus(PowerStatus status) {
         case PowerLevel::Unknown:
         default:
           imuState = IMUState::IMU_Disabled;
-          Log::verbose("IMU: Disabled");
+          ESP_LOGV(MOTION_TAG,"IMU: Disabled");
           _sampleRate = 0;
 
 #if defined(USE_MADGWICK_FILTER) or defined(USE_SIMPLE_AHRS_FILTER)
@@ -127,7 +127,7 @@ void Motion::updateMotionForPowerStatus(PowerStatus status) {
 
     holdInterface.wait("spi");
     holdInterface.take("spi");
-    Log::verbose("New IMU State: %d", imuState);
+    ESP_LOGV(MOTION_TAG,"New IMU State: %d", imuState);
     ampIMU.setPowerMode(imuState);
     holdInterface.give();
   }
@@ -150,7 +150,7 @@ void Motion::process() {
   if (uxQueueMessagesWaiting(calibrationRequestQueue)) {
     uint8_t request;
     xQueueReceive(calibrationRequestQueue, &request, 0);
-    Log::trace("calibration request: %d", request);
+    ESP_LOGD(MOTION_TAG,"calibration request: %d", request);
 
     if (request == 0x01)
       calibrateXG();
@@ -225,7 +225,7 @@ void Motion::calculateAccelerations(Vector3D raw) {
   absoluteGravity.z = abs(gravity.z);
 
 #if defined(LOG_MOTION_GRAVITY)
-  Log::verbose("Gravity - X: %F Y: %F Z: %F", gravity.x, gravity.y, gravity.z);
+  ESP_LOGV(MOTION_TAG,"Gravity - X: %F Y: %F Z: %F", gravity.x, gravity.y, gravity.z);
 #endif
 
   // linear acceleration
@@ -234,7 +234,7 @@ void Motion::calculateAccelerations(Vector3D raw) {
   linearAcceleration.z = raw[2] - gravity.z;
 
 #if defined(LOG_MOTION_LINEAR_ACCELERATION)
-  Log::verbose("$%.2f %.2f %.2f;", linearAcceleration.x, linearAcceleration.y, linearAcceleration.z);
+  ESP_LOGV(MOTION_TAG,"$%.2f %.2f %.2f;", linearAcceleration.x, linearAcceleration.y, linearAcceleration.z);
 #endif
 }
 
@@ -412,7 +412,7 @@ void Motion::triggerVehicleState(VehicleState state, bool autoBrake, bool autoTu
   _autoOrientation = autoOrient;
 
   _vehicleState = state;
-  Log::verbose("vehicle state change. accel: %d", state.acceleration);
+  ESP_LOGV(MOTION_TAG,"vehicle state change. accel: %d", state.acceleration);
   notifyMotionListeners();
 }
 
@@ -453,7 +453,7 @@ bool Motion::detectBraking() {
     else
       newAcceleration = AccelerationState::Neutral;
 
-    // Log::verbose("%.3f, %d", acceleration, newAcceleration);
+    // ESP_LOGV(MOTION_TAG,"%.3f, %d", acceleration, newAcceleration);
 
     if (newAcceleration != _vehicleState.acceleration) {
       triggerAccelerationState(newAcceleration, true);
@@ -480,7 +480,7 @@ bool Motion::detectTurning() {
     newTurn = TurnState::Center;
 
 #if defined(LOG_MOTION_TURN_DETECTION)
-  Log::verbose("turn angle: abs(%F - %F) %F > %F", _turnZero, angle, abs(_turnZero - angle), _turnThreshold);
+  ESP_LOGV(MOTION_TAG,"turn angle: abs(%F - %F) %F > %F", _turnZero, angle, abs(_turnZero - angle), _turnThreshold);
 #endif
 
   if (newTurn != _vehicleState.turn) {

@@ -1,9 +1,4 @@
 {
-	"preferences": {
-		"turnFlashRate": 200,
-		"brakeFlashRate": 100,
-		"renderer": 0
-	},
 	"motion": {
 		"autoOrientation": false,
 		"autoMotion": true,
@@ -14,27 +9,63 @@
 		"orientationUpMin": 70,
 		"orientationUpMax": 110
 	},
+	"actions": {
+		"brake-off": [
+			{ "region": "brake", "effect": "1" }
+		],
+		"brake-normal": [
+			{ "region": "brake", "effect": "2,#800000,1" }
+		],
+		"brake-active": [
+			{ "region": "brake", "effect": "3,#800000,#FF0000,100,1" }
+		],
+		"headlight-off": [
+			{ "region": "headlight", "effect": "1" }
+		],
+		"headlight-normal": [
+			{ "region": "headlight", "effect": "2,#7F7F7F,1" }
+		],
+		"headlight-bright": [
+			{ "region": "headlight", "effect": "2,#FFFFFF,1" }
+		],
+		"turn-center": [
+			{ "region": "left", "effect": "0" },
+			{ "region": "right", "effect": "0" }
+		],
+		"turn-left": [
+			{ "region": "left", "effect": "3,#000000,#FFFF00,200,2" },
+			{ "region": "right", "effect": "1" }
+		],
+		"turn-right": [
+			{ "region": "right", "effect": "3,#000000,#FFFF00,200,2" },
+			{ "region": "left", "effect": "1" }
+		],
+		"turn-hazard": [
+			{ "region": "left", "effect": "3,#000000,#FFFF00,200,2" },
+			{ "region": "right", "effect": "3,#000000,#FFFF00,200,2" }
+		]
+	},
 	"lights": {
 		"channels": [
 			{
 				"channel": 1,
 				"leds": 10,
-				"type": 0
+				"type": 3
 			},
 			{
 				"channel": 2,
 				"leds": 10,
-				"type": 0
+				"type": 3
 			},
 			{
 				"channel": 3,
 				"leds": 10,
-				"type": 0
+				"type": 3
 			},
 			{
 				"channel": 4,
 				"leds": 10,
-				"type": 0
+				"type": 3
 			}
 		],
 		"regions": {

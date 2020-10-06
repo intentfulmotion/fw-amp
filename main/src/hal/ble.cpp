@@ -3,13 +3,12 @@
 FreeRTOS::Semaphore BluetoothLE::bleReady = FreeRTOS::Semaphore("ble");
 
 BluetoothLE::BluetoothLE() {
-  configUpdatedQueue = xQueueCreate(1, sizeof(bool));
   touchEventQueue = xQueueCreate(10, sizeof(std::vector<TouchType>));
   bleReady.take();
 }
 
 void BluetoothLE::onPowerUp() {
-  xTaskCreatePinnedToCore(startServer, "ble-server", 4096, this, 3, &bleTaskHandle, 0);
+  xTaskCreatePinnedToCore(startServer, "ble-server", 4096, NULL, 3, &bleTaskHandle, 0);
 }
 
 void BluetoothLE::onPowerDown() {
@@ -19,15 +18,6 @@ void BluetoothLE::onPowerDown() {
 }
 
 void BluetoothLE::process() {
-  bool valid;
-
-  if (uxQueueMessagesWaiting(configUpdatedQueue)) {
-    xQueueReceive(configUpdatedQueue, &valid, 0);    
-
-    if (valid)
-      onConfigUpdated();
-  }
-
   if (uxQueueMessagesWaiting(touchEventQueue)) {
     xQueueReceive(touchEventQueue, &touches, 0);
 
@@ -36,36 +26,29 @@ void BluetoothLE::process() {
 
   if (publicAdvertising && millis() - publicAdvertiseStart >= PUBLIC_ADVERTISEMENT_MS) {
     notifyListeners(false);
-    updateAdvertising(Config::ampConfig.prefs.deviceName, false);
+    updateAdvertising(AmpStorage::getDeviceName(), false);
   }
 }
 
 void BluetoothLE::startServer(void *params) {
-  BluetoothLE *ble = (BluetoothLE*)params;
+  auto ble = BluetoothLE::instance();
 
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
   NimBLEDevice::setSecurityAuth(BLE_SM_PAIR_AUTHREQ_BOND);
   NimBLEDevice::setSecurityInitKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   NimBLEDevice::setSecurityRespKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
-  NimBLEDevice::init(AmpStorage::getDefaultName());
+  NimBLEDevice::init("");
   NimBLEDevice::setMTU(527);
 
   ble->server = NimBLEDevice::createServer();
   ble->advertising = ble->server->getAdvertising();
   ble->server->start();
+  bleReady.give();
 
   for (;;) {
     ble->process();
     delay(1000);
   }
-}
-
-void BluetoothLE::onConfigUpdated() {
-  auto config = &Config::ampConfig;
-
-  // update device name
-  updateAdvertising(config->prefs.deviceName, true);
-  bleReady.give();
 }
 
 NimBLEService* BluetoothLE::createService(std::string uuid) {
@@ -80,12 +63,14 @@ void BluetoothLE::startAdvertising() {
   advertising->setScanResponse(true);
   // advertising->setScanFilter(true, true);
   advertising->start();
+
+  updateAdvertising(AmpStorage::getDeviceName(), true);
 }
 
 void BluetoothLE::updateAdvertising(std::string name, bool publicAdvertise) {
   advertising->stop();
 
-  Log::trace("Updating advertising - name: %s, %s", name.c_str(), publicAdvertise ? "public" : "private");
+  ESP_LOGD(BLE_TAG,"Updating advertising - name: %s, %s", name.c_str(), publicAdvertise ? "public" : "private");
   NimBLEAdvertisementData data;
   data.setCompleteServices(NimBLEUUID::fromString(vehicleServiceUUID));
   data.setFlags(publicAdvertise ? BLE_HS_ADV_F_DISC_GEN : BLE_HS_ADV_F_DISC_LTD);
@@ -110,7 +95,7 @@ void BluetoothLE::onDisconnect(NimBLEServer *server) {
 void BluetoothLE::onTouchEvent(std::vector<TouchType> *touches) {
   if (touches->size() == 3) {
     notifyListeners(true);
-    updateAdvertising(Config::ampConfig.prefs.deviceName, true);
+    updateAdvertising(AmpStorage::getDeviceName(), true);
   }
 }
 

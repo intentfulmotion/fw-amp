@@ -7,7 +7,7 @@ Firmware powering the Amp smart lighting controller. Built on ESP-IDF 4.1.
 * Motion or gesture controlled turn indicators
 * Lighting and motion detection customizable via the Amp Mixer mobile app
 * Remote control via the Amp Mixer app or Bluetooth LE
-* 5 alternative lighting modes (rainbows, theater chase lights, etc.)
+* Customizable lighting effects that react to actions (turning, braking, etc.)
 
 ## Specs
 * ESP32 WROOM32E dual core Xtensa processor running at 80 Mhz (can be clocked up to 240 Mhz)

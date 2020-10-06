@@ -29,19 +29,19 @@ void ConfigService::setupService() {
 void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
   std::string uuid = characteristic->getUUID().toString();
   std::string received = characteristic->getValue();
-  Log::verbose("Received: %s", received.c_str());
+  ESP_LOGD(CONFIG_SERVICE_TAG, "Received: %s", received.c_str());
 
   if (uuid.compare(configRxCharacteristicUUID) == 0) {
-    std::size_t partialMarker = received.find_first_of("##");
+    std::size_t partialMarker = received.find("##");
     if (partialMarker == std::string::npos) {
       // this is a single packet
-      Log::verbose("Single packet data: %s", received.c_str());
+      ESP_LOGD(CONFIG_SERVICE_TAG, "Single packet data: %s", received.c_str());
       processCommand(received);
     }
     else {
       uint8_t totalPackets = (uint8_t)received[2];
       uint8_t currentPacket = (uint8_t)received[3];
-      Log::verbose("Received partial packet %d/%d", currentPacket, totalPackets);
+      ESP_LOGD(CONFIG_SERVICE_TAG, "Received partial packet %d/%d", currentPacket, totalPackets);
 
       // clear the buffer if we've received a new first packet
       if (currentPacket == 1)
@@ -52,11 +52,7 @@ void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
 
       // if it's the last packet
       if (currentPacket == totalPackets) {
-        Log::trace("Received last partial packet. Total size: %d %s", rxBuffer.length(), rxBuffer.c_str());
-        printf("Bytes: ");
-        for (int i = 0; i < rxBuffer.length(); i++)
-          printf("%d ", rxBuffer[i]);
-        printf("\n");
+        ESP_LOGD(CONFIG_SERVICE_TAG, "Received last partial packet. Total size: %d %s", rxBuffer.length(), rxBuffer.c_str());
         processCommand(rxBuffer);
         rxBuffer.clear();
       }
@@ -65,39 +61,67 @@ void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
 }
 
 void ConfigService::processCommand(std::string data) {
-  Log::trace("Parsing command: %s", data.c_str());
+  ESP_LOGD(CONFIG_SERVICE_TAG, "Parsing command: %s", data.c_str());
   std::size_t command_location = data.find_first_of(":");
   if (command_location == std::string::npos)
-    Log::warning("Invalid command (no key)");
+    ESP_LOGW(CONFIG_SERVICE_TAG, "Invalid command (no key)");
   else {
     std::string key = data.substr(0, command_location);
     std::string value = data.substr(command_location + 1);
 
     if (key == "raw") {
-      Log::verbose("Raw configuration received: %s", value.c_str());
+      ESP_LOGV(CONFIG_SERVICE_TAG, "Raw configuration received: %s", value.c_str());
       _config->loadConfig(value);
 
       // save config if valid
       if (_config->isValid())
         _config->saveConfig();
     }
-    else if (key == "conf") {
-      std::size_t configValueLocation = data.find_first_of("=");
-      if (configValueLocation == std::string::npos)
-        Log::warning("Missing '=' in configuration setting");
-      else {
-        std::string configKey = value.substr(0, configValueLocation);
-        std::string configValue = value.substr(configValueLocation);
+    else if (key == "name") {
+      // limit to 100 characters
+      std::string name = value.substr(0, std::min((int) value.length(), 100));
+      AmpStorage::saveDeviceName(name);
+      BluetoothLE::instance()->updateAdvertising(name, true);
+    }
+    else if (key == "effect" || key == "saveEffect") {
+      bool save = key == "saveEffect";
+      size_t actionLocation = value.find_first_of(",");
+      std::string action = value.substr(0, actionLocation);
+      std::string regionString = value.substr(actionLocation + 1);
+      size_t regionLocation = regionString.find_first_of(",");
+      std::string region = regionString.substr(0, regionLocation);
+      std::string effect = regionString.substr(regionLocation + 1);
+
+      bool valid = _config->addEffect(action, region, effect, save);
+      if (valid) {
+        ESP_LOGI(CONFIG_SERVICE_TAG, "Effect received - action: %s region: %s effect: %s",
+          action.c_str(), region.c_str(), effect.c_str());
+        
+        if (save)
+          _config->saveConfig();
       }
+      else
+        ESP_LOGW(CONFIG_SERVICE_TAG, "Invalid effect received - action: %s region: %s effect: %s",
+          action.c_str(), region.c_str(), effect.c_str());
+    }
+    else if (key == "removeEffect") {
+      // size_t actionLocation = value.find_first_of(",");
+      // std::string action = value.substr(0, actionLocation);
+      // std::string region = value.substr(actionLocation + 1);
+
+      // _config->removeEffect(action, region, true);
+      // _config->saveConfig();
     }
     else if (key == "get") {
       if (value == "config") {
-        Log::trace("Config requested");
+        ESP_LOGD(CONFIG_SERVICE_TAG, "Config requested");
         std::string prefix = std::string("config:");
         std::string configData = _config->getRawConfig();
         transmit(prefix.append(configData));
       }
     }
+    else if (key == "save")
+      _config->saveConfig();
   }
 }
 
@@ -128,7 +152,7 @@ std::vector<std::string> ConfigService::buildPackets(std::string data, size_t pa
 
 // void ConfigService::transmit(std::string data) {
 //   size_t chars = data.length();
-//   Log::trace("Transmitting %s", data.c_str());
+//   ESP_LOGD(CONFIG_SERVICE_TAG,"Transmitting %s", data.c_str());
 
 //   for (NimBLEClient* device : NimBLEDevice::getClientList()) {
 //     // get MTU of the peer device to determine packet size
@@ -140,7 +164,7 @@ std::vector<std::string> ConfigService::buildPackets(std::string data, size_t pa
 //       auto packets = buildPackets(data, packetSize);
 //       uint16_t count = 0;
 //       for (auto packet : packets) {
-//         Log::verbose("Transmitting packet %d/%d: %s", ++count, packets.size(), packet.c_str());
+//         ESP_LOGV(CONFIG_SERVICE_TAG,"Transmitting packet %d/%d: %s", ++count, packets.size(), packet.c_str());
 //         notify(connection, packet, true);
 //         delay(10);
 //       }
@@ -248,38 +272,3 @@ void ConfigService::notify(uint16_t conn_id, std::string value, bool is_notifica
 
   _configTxCharacteristic->m_pCallbacks->onStatus(_configTxCharacteristic, statusRC, rc);
 }
-
-// void ConfigService::notify(uint16_t conn_id, std::string data, bool notify) {
-//   BLE2902 *p2902 = (BLE2902*)_configTxCharacteristic->getDescriptorByUUID((uint16_t)0x2902);
-
-//   // don't send if no one is subscribed
-// 	if(notify) {
-// 		if (p2902 != nullptr && !p2902->getNotifications()) {
-// 			Log::verbose("Notifications disabled; ignoring");
-// 			return;
-// 		}
-// 	}
-// 	else{
-// 		if (p2902 != nullptr && !p2902->getIndications()) {
-// 			Log::verbose("Indications disabled; ignoring");
-// 			return;
-// 		}
-// 	}
-
-//   if (!notify)
-//     eventSemaphore.take("indicate");
-
-//   esp_err_t result = ::esp_ble_gatts_send_indicate(
-//     _server->getGattsIf(),
-//     conn_id,
-//     _configTxCharacteristic->getHandle(), data.length(), (uint8_t*)data.data(), !notify);
-
-//   if (result != ESP_OK) {
-//     Log::error("<< esp_ble_gatts_send_ %s: rc=%d", notify ? "notify":"indicate", result);
-//     eventSemaphore.give();
-//     return;
-//   }
-
-//   if (!notify)
-//     eventSemaphore.wait("indicate");
-// }

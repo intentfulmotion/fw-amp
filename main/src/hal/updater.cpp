@@ -17,13 +17,13 @@ void Updater::startUpdate() {
 
 void Updater::endUpdate() {
   status = UpdateStatus::End;
-  Log::verbose("Ending update. Total written: %d bytes", dataLength);
+  ESP_LOGV(UPDATER_TAG,"Ending update. Total written: %d bytes", dataLength);
 
   // end the ota update and verify it's good
   auto error = esp_ota_end(updateHandle);
   if (error != ESP_OK) {
     status = UpdateStatus::ErrorEnd;
-    Log::verbose("Error ending update: %d", status);
+    ESP_LOGV(UPDATER_TAG,"Error ending update: %d", status);
   }
   else {
     // set next boot partition
@@ -37,7 +37,7 @@ void Updater::endUpdate() {
 
 void Updater::writeUpdate(std::string data) {
   updatePacketsCount++;
-  Log::verbose("Update packet %d", updatePacketsCount);
+  ESP_LOGV(UPDATER_TAG,"Update packet %d", updatePacketsCount);
 
   const char* dataC = data.data();
   auto size = data.length();
@@ -51,7 +51,7 @@ void Updater::writeUpdate(std::string data) {
   auto error = esp_ota_write(updateHandle, (const void*) dataC, size);
   if (error != ESP_OK) {
     status = UpdateStatus::ErrorWrite;
-    Log::verbose("Write error: %d", status);
+    ESP_LOGV(UPDATER_TAG,"Write error: %d", status);
   }
   
   notifyUpdateListeners();

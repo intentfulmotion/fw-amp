@@ -1,20 +1,24 @@
 #include <hal/config.h>
+#include <hal/lights.h>
 
 AmpConfig Config::ampConfig;
+StaticJsonDocument<10000> document;
+
+FreeRTOS::Semaphore Config::effectsUpdating = FreeRTOS::Semaphore("effects");
 
 void Config::onPowerUp() {
   if (!ampStorage.init()) {
-    Log::fatal("Unable to mount filsystem");
+    ESP_LOGE(CONFIG_TAG,"Unable to mount filsystem");
     _filesystemError = true;
   }
 
   ampConfig.info = getDeviceInfo();
   
-  Log::notice("Amp %s", ampConfig.info.hardwareVersion.c_str());
-  Log::notice("Firmware: %s", ampConfig.info.firmwareVersion.c_str());
-  Log::notice("Serial Number: %s", ampConfig.info.serialNumber.c_str());
-  Log::notice("Copyright %d %s", COPYRIGHT_YEAR, ampConfig.info.manufacturer.c_str());
-  Log::notice("IDF version: %s", esp_get_idf_version());
+  ESP_LOGI(CONFIG_TAG,"Amp %s", ampConfig.info.hardwareVersion.c_str());
+  ESP_LOGI(CONFIG_TAG,"Firmware: %s", ampConfig.info.firmwareVersion.c_str());
+  ESP_LOGI(CONFIG_TAG,"Serial Number: %s", ampConfig.info.serialNumber.c_str());
+  ESP_LOGI(CONFIG_TAG,"Copyright %d %s", COPYRIGHT_YEAR, ampConfig.info.manufacturer.c_str());
+  ESP_LOGI(CONFIG_TAG,"IDF version: %s", esp_get_idf_version());
 
   loadConfigFile();
 }
@@ -35,7 +39,7 @@ bool Config::loadConfigFile() {
     return loadConfig(rawConfig);
   }
   else {
-    Log::error("Cannot load config due to error with filesystem.");
+    ESP_LOGE(CONFIG_TAG,"Cannot load config due to error with filesystem.");
     return false;
   }
 }
@@ -44,15 +48,16 @@ void Config::saveConfig() {
   auto file = ampStorage.writeFile(configPath);
 
   if (!file) {
-    Log::error("Could not open file: %s", configPath.c_str());
+    ESP_LOGE(CONFIG_TAG,"Could not open file: %s", configPath.c_str());
     return;
   }
 
-  Log::trace("Writing config to file");
-  char buffer[1024];
-  auto size = serializeMsgPack(document.as<JsonObject>(), buffer);
+  // serialize effects
+  ESP_LOGD(CONFIG_TAG,"Writing config to file");
 
-  fwrite(buffer, 1, size, file);
+  MsgPackFileWriter writer(file);
+  serializeMsgPack(document, writer);
+
   fclose(file);
 }
 
@@ -62,7 +67,7 @@ bool Config::loadConfig(std::string msgPackData) {
   // load MessagePack document
   auto err = deserializeMsgPack(document, msgPackData.c_str());
   if (err) {
-    Log::error("deserializeMsgPack failed: %s", err.c_str());
+    ESP_LOGE(CONFIG_TAG,"deserializeMsgPack failed: %s", err.c_str());
     _valid = false;
     return _valid;
   }
@@ -72,14 +77,14 @@ bool Config::loadConfig(std::string msgPackData) {
   JsonObject lightsJson = configJson["lights"].as<JsonObject>();
   loadLightsConfig(lightsJson);
 
-  JsonObject prefsJson = configJson["preferences"].as<JsonObject>();
-  loadPrefsConfig(prefsJson);
+  JsonObject actionsJson = configJson["actions"].as<JsonObject>();
+  loadActionConfig(actionsJson);
 
   JsonObject motionJson = configJson["motion"].as<JsonObject>();
   loadMotionConfig(motionJson);
 
   rawConfig = msgPackData;
-  Log::trace("Loaded configuration");
+  ESP_LOGD(CONFIG_TAG,"Loaded configuration");
   _valid = true;
 
   for (auto listener : configListeners)
@@ -111,12 +116,12 @@ void Config::loadMotionConfig(JsonObject motionJson) {
   uint8_t orientationAxis = (AttitudeAxis)(motionJson["orientationAxis"].as<uint8_t>()) | AttitudeAxis::Pitch;
   config.orientationAxis = (AttitudeAxis)orientationAxis;
 
-  Log::verbose("auto orientation config: %s", config.autoOrientation ? "true" : "false");
-  Log::verbose("auto motion config: %s", config.autoMotion ? "true" : "false");
-  Log::verbose("auto turn config: %s", config.autoTurn ? "true" : "false");
+  ESP_LOGV(CONFIG_TAG,"auto orientation config: %s", config.autoOrientation ? "true" : "false");
+  ESP_LOGV(CONFIG_TAG,"auto motion config: %s", config.autoMotion ? "true" : "false");
+  ESP_LOGV(CONFIG_TAG,"auto turn config: %s", config.autoTurn ? "true" : "false");
 
-  Log::verbose("brake axis: %d threshold: %F", config.brakeAxis, config.brakeThreshold);
-  Log::verbose("turn axis: %d threshold: %F", config.turnAxis, config.turnThreshold);
+  ESP_LOGV(CONFIG_TAG,"brake axis: %d threshold: %F", config.brakeAxis, config.brakeThreshold);
+  ESP_LOGV(CONFIG_TAG,"turn axis: %d threshold: %F", config.turnAxis, config.turnThreshold);
 
   ampConfig.motion = config;
 }
@@ -131,7 +136,7 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
     LightChannel ch;
     ch.channel = channel["channel"].as<uint8_t>();
     ch.leds = channel["leds"].as<uint16_t>();
-    ch.type = channel["type"].as<uint8_t>();
+    ch.type = channel["type"].as<LEDType>();
     channels[ch.channel] = ch;
   }
 
@@ -143,6 +148,8 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
 
     LightRegion region;
     std::vector<LightSection> sections;
+    region.count = 0;
+
     for (auto sect : sectionsJson) {
       LightSection section;
       JsonObject sectionJson = sect.as<JsonObject>();
@@ -163,8 +170,12 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
       else
         _validSection = false;
 
-      if (_validSection)
+      if (_validSection) {
         sections.push_back(section);
+        uint16_t count = section.end - section.start;
+        region.count += count;
+        region.breaks.push_back(count);
+      }
     }
     region.sections = sections;
     regions[regionName] = region;
@@ -177,30 +188,32 @@ void Config::loadLightsConfig(JsonObject lightsJson) {
   ampConfig.lights = config;
 }
 
-void Config::loadPrefsConfig(JsonObject prefsJson) {
-  PrefsConfig prefsConfig;
-
-  if (!prefsJson.containsKey("name") || prefsJson["name"].as<std::string>().size() == 0)
-    prefsConfig.deviceName = ampStorage.getDefaultName();
-  else
-    prefsConfig.deviceName = prefsJson["name"].as<std::string>();
-
-  Log::verbose("Device Name: %s", prefsConfig.deviceName.c_str());
-  prefsConfig.turnFlashRate = prefsJson["turnFlashRate"] | 200;
-  prefsConfig.brakeFlashRate = prefsJson["brakeFlashRate"] | 100;
-  prefsConfig.brakeDuration = prefsJson["brakeDuration"] | 1500;
-
-  uint8_t renderer = (prefsJson["renderer"]) | 0;
-  prefsConfig.renderer = (LightMode) renderer;
-
-  ampConfig.prefs = prefsConfig;
+void Config::loadActionConfig(JsonObject actionJson) {
+  for (auto actionPair : actionJson) {
+    std::string action = std::string(actionPair.key().c_str());
+    JsonArray regionEffects = actionPair.value().as<JsonArray>();
+    
+    // parse all regional effects for action
+    for (auto regionEffect : regionEffects) {
+      if (regionEffect.containsKey("region") && regionEffect.containsKey("effect")) {
+        std::string region = regionEffect["region"].as<std::string>();
+        std::string effect = regionEffect["effect"].as<std::string>();
+        if (!addEffect(action, region, effect))
+          ESP_LOGW(CONFIG_TAG, "Unable to add effect - action: %s\tregion: %s\teffect: %s", 
+            action.c_str(), region.c_str(), effect.c_str());
+        else
+          ESP_LOGD(CONFIG_TAG, "Added effect - action: %s\tregion: %s\teffect: %s",
+            action.c_str(), region.c_str(), effect.c_str());
+      }
+    }
+  }
 }
 
 std::string Config::readFile(std::string filename) {
   if (!_filesystemError)
     return ampStorage.readFile(filename);
   
-  Log::error("Unable to read file due to filesystem error");
+  ESP_LOGE(CONFIG_TAG,"Unable to read file due to filesystem error");
   return "";
 }
 
@@ -208,6 +221,204 @@ DeviceInfo Config::getDeviceInfo() {
   DeviceInfo info;
   info.hardwareVersion = AmpStorage::getHardwareRevision();
   info.serialNumber = AmpStorage::getSerialNumber();
+  info.deviceName = AmpStorage::getDeviceName();
 
   return info;
+}
+
+bool Config::addEffect(std::string action, std::string region, std::string data, bool updateJson) {
+  effectsUpdating.wait(CONFIG_TAG);
+  effectsUpdating.take(CONFIG_TAG);
+
+  bool found = false;
+
+  for (auto const& [command, actionName] : Lights::headlightActions)
+    if (actionName.compare(action) == 0) {
+      found = true;
+      break;
+    }
+
+  if (!found)
+    for (auto const& [command, actionName] : Lights::turnActions)
+      if (actionName.compare(action) == 0) {
+        found = true;
+        break;
+      }
+
+  if (!found)
+    for (auto const& [command, actionName] : Lights::brakeActions)
+      if (actionName.compare(action) == 0) {
+        found = true;
+        break;
+      }
+
+  if (!found)
+    return false;
+
+  LightingParameters effect;
+  if (!parseEffect(data, &effect))
+    return false;
+
+  effect.region = region;
+
+  if (ampConfig.actions.find(action) == ampConfig.actions.end())
+    ampConfig.actions[action] = new std::vector<LightingParameters>();
+
+  ampConfig.actions[action]->push_back(effect);
+
+  if (updateJson) {
+    auto actionsRoot = document["actions"].as<JsonObject>();
+    JsonArray actionRoot;
+
+    if (!actionsRoot.containsKey(action))
+      actionRoot = actionsRoot.createNestedArray(action);
+    else 
+      actionRoot = actionsRoot[action].as<JsonArray>();
+
+    bool foundJson = false;
+    for (auto effect : actionRoot) {
+      if (effect[region].as<std::string>().compare(region) == 0) {
+        foundJson = true;
+        effect["effect"] = data.c_str();
+      }
+    }
+    if (!foundJson) {
+      auto effectRoot = actionRoot.createNestedObject();
+      effectRoot["region"] = region.c_str();
+      effectRoot["effect"] = data.c_str();
+    }
+  }
+
+  effectsUpdating.give();  
+
+  return true;
+}
+
+std::vector<LightingParameters>* Config::getActionEffects(std::string action) {
+  if (ampConfig.actions.find(action) == ampConfig.actions.end())
+    return NULL;
+
+  return ampConfig.actions[action];
+}
+
+// void Config::removeEffect(std::string action, std::string region, bool updateJson) {
+//   effectsUpdating.wait(CONFIG_TAG);
+//   effectsUpdating.take(CONFIG_TAG);
+
+//   if (ampConfig.actions.find(action) == ampConfig.actions.end())
+//     return;
+  
+//   for (auto it = ampConfig.actions[action]->begin(); it != ampConfig.actions[action]->end(); ++it) {
+//     auto effect = *it;
+//     if (effect.region.compare(region) == 0)
+//       ampConfig.actions[action]->erase(it);
+//   }
+
+//   if (updateJson) {
+//     auto actionsRoot = document["actions"].as<JsonObject>();
+//     if (!actionsRoot.containsKey(action))
+//       return;
+
+//     auto actionRoot = actionsRoot[action];
+//     for (int i = 0; i < actionRoot.size(); i++) {
+//       auto effect = actionRoot[i];
+//       if (strcmp(effect["region"], region.c_str()) == 0) {
+//         ESP_LOGD(CONFIG_TAG, "Found effect - removing %s for %s", action.c_str(), region.c_str());
+//         actionRoot.remove(i);
+//         document.garbageCollect();
+//         break;
+//       }
+//     }
+//   }
+
+//   effectsUpdating.give();
+// }
+
+bool Config::parseEffect(std::string data, LightingParameters *params) {
+  auto parts = split(data, ',');
+  params->effect = (LightEffect) atoi(parts[0].c_str());
+  params->layer = 0;
+  auto numParts = parts.size();
+
+  switch (params->effect) {
+    case LightEffect::Static:
+      if (numParts < 2) {
+        ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
+        return false;
+      }
+
+      params->first = parseColorOption(parts[1]);
+
+      if (numParts == 3)
+        params->layer = atoi(parts[2].c_str());
+      break;
+    case LightEffect::TheaterChase:
+      if (numParts < 3) {
+        ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
+        return false;
+      }
+
+      params->first = parseColorOption(parts[1]);
+      params->duration = atoll(parts[2].c_str());
+
+      if (numParts == 4)
+        params->layer = atoi(parts[2].c_str());
+      break;
+    case LightEffect::Scan:
+    case LightEffect::ColorWipe:
+    case LightEffect::Blink:
+    case LightEffect::Breathe:
+    case LightEffect::Fade:
+    case LightEffect::Twinkle:
+    case LightEffect::Sparkle:
+    case LightEffect::Alternate:
+    case LightEffect::ColorChase:
+      if (numParts < 4) {
+        ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
+        return false;
+      }
+
+      params->first = parseColorOption(parts[1]);
+      params->second = parseColorOption(parts[2]);
+      params->duration = atoll(parts[3].c_str());
+
+      if (numParts == 5)
+        params->layer = atoi(parts[4].c_str());
+      break;
+    case LightEffect::Rainbow:
+    case LightEffect::RainbowCycle:
+      if (numParts < 2) {
+        ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
+        return false;
+      }
+
+      params->duration = atoll(parts[1].c_str());
+
+      if (numParts == 3)
+        params->layer = atoi(parts[2].c_str());
+      break;
+    case LightEffect::Transparent:
+    case LightEffect::Off:
+      params->first = { lightOff, false, false };
+
+      if (numParts == 2)
+        params->layer = atoi(parts[1].c_str());
+    default:
+      break;
+  }
+
+  return true;
+}
+
+ColorOption Config::parseColorOption(std::string data) {
+  ColorOption option = { lightOff, false, false };
+
+  if (data == "random")
+    option.random = true;
+  else if (data == "rainbow")
+    option.rainbow = true;
+  else
+    option.color = hexToColor(data);
+
+  return option;
 }

@@ -1,9 +1,8 @@
 #pragma once
 
 #define AMP_1_0_x
-#define AMP_LOG_LEVEL AMP_LOG_LEVEL_VERBOSE
 
-#define FIRMWARE_VERSION    "1.0.0"
+#define FIRMWARE_VERSION    "1.1.0"
 #define COPYRIGHT_YEAR      2020
 
 // Status LED
@@ -35,10 +34,9 @@
 #define IMU_CS              GPIO_NUM_5
 #define BLE_ENABLED
 
-#define FASTLED_ESP32_I2S true
-#include <FastLED.h>
-#define Color CRGB
-#define LightController CLEDController
+#include "AddressableLED.h"
+#define Color Rgb
+#define LightController AddressableLED
 
 #define IO_PIN_SELECT(x)  (1ULL<<x)
 
@@ -51,13 +49,17 @@ static const Color updateProgress(0, 127, 0);
 static const Color updateEnd(127, 127, 0);
 static const Color updateError(127, 0, 0);
 
-#include <stdint.h>
+#include <FreeRTOS.h>
 #include <memory>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 #include <cstdio>
-#include <log.h>
 #include "esp_task_wdt.h"
+
+#define LOG_LOCAL_LEVEL ESP_LOG_INFO
+#include <esp_log.h>
 
 #define PI 3.1415926535897932384626433832795
 
@@ -81,7 +83,6 @@ inline Color hexStringToColor(std::string fadeColorText) {
     sscanf(fadeColorText.substr(0, 2).c_str(), "%02X", &r);
     sscanf(fadeColorText.substr(2, 4).c_str(), "%02X", &g);
     sscanf(fadeColorText.substr(4, 6).c_str(), "%02X", &b);
-    ESP_LOGD("Fade Color", "%d, %d, %d", r, g, b);
     return Color(static_cast<uint8_t>(r), static_cast<uint8_t>(g), static_cast<uint8_t>(b));
   }
   else
@@ -95,6 +96,20 @@ inline std::string string_format( const std::string& format, Args ... args )
     std::unique_ptr<char[]> buf( new char[ size ] ); 
     snprintf( buf.get(), size, format.c_str(), args ... );
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
+
+inline unsigned long micros()
+{
+  return (unsigned long) (esp_timer_get_time());
+}
+
+inline unsigned long millis()
+{
+  return (unsigned long) (esp_timer_get_time() / 1000ULL);
+}
+
+inline void delay(uint32_t ms) {
+  vTaskDelay(ms / portTICK_PERIOD_MS);
 }
 
 // power
@@ -128,4 +143,21 @@ inline uint8_t percentageFromReading(float reading) {
       return 100 - (5 * i);
   
   return 0;
+}
+
+inline Color hexToColor(std::string hex) {
+  Color color;
+  sscanf(hex.c_str(), "#%02x%02x%02x", (uint*) &color.r, (uint*) &color.g, (uint*) &color.b);
+
+  return color;
+}
+
+inline std::vector<std::string> split(const std::string &s, char delim) {
+  std::stringstream ss(s);
+  std::string item;
+  std::vector<std::string> elems;
+  while (std::getline(ss, item, delim))
+    elems.push_back(std::move(item));
+
+  return elems;
 }

@@ -2,91 +2,132 @@
 
 void AmpLeds::init() {
   // setup the status led
-  FastLED.addLeds<NEOPIXEL, STATUS_LED>(statusData, 1);
-  statusData[0] = CRGB::Black;
-
-  FastLED.setMaxPowerInMilliWatts(6200);
+  status = new OneWireLED(NeoPixel, STATUS_LED, 0, 1);
+  (*status)[0] = lightOff;
 }
 
 void AmpLeds::deinit() {
-  FastLED.showColor(lightOff);
-
   delay(50);
 }
 
 void AmpLeds::process() {
   if (dirty) {
-    FastLED.show();
-    dirty = false;
+    status->show();
+    for (auto pair : channels) {
+      if (pair.second != nullptr) {
+        if (pair.second->wait(5))
+          pair.second->show();
+      }
+    }
   }
+  // if (statusDirty) {
+  //   ESP_LOGV(LEDS_TAG,"Status is dirty. Re-rendering");
+  //   status->wait();
+  //   status->show();
+  //   statusDirty = false;
+  // }
+
+  // // check the dirty bit for each
+  // for (auto pair : channels) {
+  //   if (pair.second != nullptr && dirty[pair.first]) {
+  //     ESP_LOGV(LEDS_TAG,"Channel %d is dirty. Re-rendering", pair.first);
+  //     pair.second->wait();
+  //     pair.second->show();
+
+  //     // unset dirty bit
+  //     dirty[pair.first] = false;
+  //   }
+  // }
 }
 
 LightController* AmpLeds::addLEDStrip(LightChannel data) {
-  Log::trace("Adding %s strip on channel %d with %d LEDs", data.type == 0 ? "Neopixel" : "DotStar", data.channel, data.leds);
-  auto channel = data.channel;
-  switch (channel) {
-    case 1:
-      channelOneData = new CRGB[data.leds];
-      if (data.type == 0)
-        channels[channel] = &FastLED.addLeds<NEOPIXEL, STRIP_ONE_DATA>(channelOneData, data.leds);
-      else if (data.type == 1)
-        channels[channel] = &FastLED.addLeds<DOTSTAR, STRIP_ONE_DATA, STRIP_ONE_CLK>(channelOneData, data.leds);
+  ESP_LOGD(LEDS_TAG,"Adding type %d strip on channel %d with %d LEDs", data.type, data.channel, data.leds);
+  AddressableLED *controller = nullptr;
+
+  switch(data.type) {
+    case LEDType::NeoPixel:
+    case LEDType::WS2813:
+    case LEDType::SK6812:
+      controller = new OneWireLED(data.type, lightMap[data.channel], data.channel, data.leds);
       break;
-    case 2:
-      channelTwoData = new CRGB[data.leds];
-      if (data.type == 0)
-        channels[channel] = &FastLED.addLeds<NEOPIXEL, STRIP_TWO_DATA>(channelTwoData, data.leds);
-      else if (data.type == 1)
-        channels[channel] = &FastLED.addLeds<DOTSTAR, STRIP_TWO_DATA, STRIP_TWO_CLK>(channelTwoData, data.leds);      
+    case LEDType::SK6812_RGBW:
+      controller = new OneWireLED(data.type, lightMap[data.channel], data.channel, data.leds, PixelOrder::GRBW);
       break;
-    case 3:
-      channelThreeData = new CRGB[data.leds];
-      if (data.type == 0)
-        channels[channel] = &FastLED.addLeds<NEOPIXEL, STRIP_THREE_DATA>(channelThreeData, data.leds);
-      else if (data.type == 1)
-        channels[channel] = &FastLED.addLeds<DOTSTAR, STRIP_THREE_DATA, STRIP_THREE_CLK>(channelThreeData, data.leds); 
+    case LEDType::DotStar:
+      controller = new TwoWireLED(HSPI_HOST, data.leds, lightMap[data.channel], lightMap[data.channel + 4]);
       break;
-    case 4:
-      channelFourData = new CRGB[data.leds];
-      if (data.type == 0)
-        channels[channel] = &FastLED.addLeds<NEOPIXEL, STRIP_FOUR_DATA>(channelFourData, data.leds);
-      else if (data.type == 1)
-        channels[channel] = &FastLED.addLeds<DOTSTAR, STRIP_FOUR_DATA, STRIP_FOUR_CLK>(channelFourData, data.leds); 
-      break;
-    case 5:
-      channelFiveData = new CRGB[data.leds];
-      if (data.type == 0)
-        channels[channel] = &FastLED.addLeds<NEOPIXEL, STRIP_ONE_CLK>(channelFiveData, data.leds);
-      break;
-    case 6:
-      channelSixData = new CRGB[data.leds];
-      if (data.type == 0)
-        channels[channel] = &FastLED.addLeds<NEOPIXEL, STRIP_TWO_CLK>(channelSixData, data.leds);
-      break;
-    case 7:
-      channelSevenData = new CRGB[data.leds];
-      if (data.type == 0)
-        channels[channel] = &FastLED.addLeds<NEOPIXEL, STRIP_THREE_CLK>(channelSevenData, data.leds);
-      break;
-    case 8:
-      channelEightData = new CRGB[data.leds];
-      if (data.type == 0)
-        channels[channel] = &FastLED.addLeds<NEOPIXEL, STRIP_FOUR_CLK>(channelEightData, data.leds);
-      break;
+    default:
+      return nullptr;
   }
 
-  return channels[channel];
+  for (uint16_t i = 0; i < data.leds; i++)
+    (*controller)[i] = lightOff;
+
+  channels[data.channel] = controller;
+  leds[data.channel] = data.leds;
+  // dirty[data.channel] = true;
+
+  return controller;
 }
 
 void AmpLeds::setStatus(Color color) {
-  statusData[0] = gammaCorrected(color);
+  (*status)[0] = gammaCorrected(color);
   dirty = true;
+  // statusDirty = true;
 }
 
-void AmpLeds::render() {
+void AmpLeds::render(bool all, int8_t channel) {
   dirty = true;
+  // statusDirty = true;
+
+  // // set all dirty bits
+  // if (all) {
+  //   for (auto pair : dirty)
+  //     dirty[pair.first] = true;
+  // }
+  // else if (channel != -1 && channel >= 1 && channel <= 8)
+  //   dirty[channel] = true;
 }
 
 Color AmpLeds::gammaCorrected(Color color) {
   return Color(gamma8[color.r], gamma8[color.g], gamma8[color.b]);
+}
+
+void AmpLeds::setPixel(uint8_t channelNumber, Color color, uint16_t index) {
+  if (index >= leds[channelNumber]) {
+    ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", index, channelNumber, leds[channelNumber]);
+    return;
+  }
+
+  auto controller = channels[channelNumber];
+  if (controller == nullptr)
+    return;
+
+  (*controller)[index] = color;
+}
+
+Color AmpLeds::getPixel(uint8_t channelNumber, uint16_t index) {
+  if (index >= leds[channelNumber]) {
+    ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", index, channelNumber, leds[channelNumber]);
+    return lightOff;
+  }
+
+  auto controller = channels[channelNumber];
+  if (controller == nullptr)
+    return lightOff;
+
+  return (*controller)[index];
+}
+
+void AmpLeds::setPixels(uint8_t channelNumber, Color color, uint16_t start, uint16_t end) {
+  auto controller = channels[channelNumber];
+  if (controller == nullptr)
+    return;
+  
+  for (uint16_t i = start; i < end; i++) {
+    if (i < leds[channelNumber])
+      (*controller)[i] = color;
+    else
+      ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", i, channelNumber, leds[channelNumber]);
+  }
 }

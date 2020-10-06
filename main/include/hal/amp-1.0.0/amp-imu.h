@@ -4,6 +4,8 @@
 #include <common.h>
 #include <models/motion.h>
 
+static const char* IMU_TAG = "imu";
+
 class AmpIMU {
   static lis3dh_sensor_t* sensor;
   lis3dh_float_data_t data;

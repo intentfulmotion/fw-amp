@@ -1,20 +1,15 @@
 #pragma once
 #include <models/light.h>
 
-class RenderHost {
-  protected:
-    LightMode lightMode;
+class RenderHost {    
   public:
-    QueueHandle_t lightModeQueue = NULL;
-    virtual void setLightMode(LightMode mode);
-    virtual void setBrakes(LightCommand command);
-    virtual void setHeadlight(LightCommand command);
-    virtual void setTurnLights(LightCommand command);
-    LightMode getLightMode() { return lightMode; }
+    virtual void setBrakes(LightCommand command) = 0;
+    virtual void setHeadlight(LightCommand command) = 0;
+    virtual void setTurnLights(LightCommand command) = 0;
 };
 
 class RenderListener {
   public:
     QueueHandle_t lightsChangedQueue = NULL;
-    virtual void onLightsChanged(LightCommands commands);
+    virtual void onLightsChanged(LightCommands commands) = 0;
 };

@@ -17,7 +17,9 @@
 
 #define PUBLIC_ADVERTISEMENT_MS   15000
 
-class BluetoothLE : public LifecycleBase, public ConfigListener, public TouchListener, public NimBLEServerCallbacks {
+static const char* BLE_TAG = "ble";
+
+class BluetoothLE : public LifecycleBase, public TouchListener, public NimBLEServerCallbacks {
   NimBLEAdvertising *advertising;
   NimBLEAdvertisementData advertisementData;
   std::stack<bool> connectedDevices;
@@ -32,6 +34,8 @@ class BluetoothLE : public LifecycleBase, public ConfigListener, public TouchLis
     NimBLEServer *server;
     BluetoothLE();
 
+    static BluetoothLE* instance() { static BluetoothLE ble; return &ble; }
+
     // Lifecycle Base
     void onPowerUp();
     void onPowerDown();
@@ -41,9 +45,6 @@ class BluetoothLE : public LifecycleBase, public ConfigListener, public TouchLis
     void onConnect(NimBLEServer *server) { }
     void onConnect(NimBLEServer *server, ble_gap_conn_desc *desc);
     void onDisconnect(NimBLEServer *server);
-    
-    // Config Listener
-    void onConfigUpdated();
 
     // TouchListener
     void onTouchEvent(std::vector<TouchType> *touches);
