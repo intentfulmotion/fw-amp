@@ -347,7 +347,7 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
         return false;
       }
 
-      params->first = hexToColor(parts[1]);
+      params->first = parseColorOption(parts[1]);
 
       if (numParts == 3)
         params->layer = atoi(parts[2].c_str());
@@ -358,7 +358,7 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
         return false;
       }
 
-      params->first = hexToColor(parts[1]);
+      params->first = parseColorOption(parts[1]);
       params->duration = atoll(parts[2].c_str());
 
       if (numParts == 4)
@@ -378,8 +378,8 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
         return false;
       }
 
-      params->first = hexToColor(parts[1]);
-      params->second = hexToColor(parts[2]);
+      params->first = parseColorOption(parts[1]);
+      params->second = parseColorOption(parts[2]);
       params->duration = atoll(parts[3].c_str());
 
       if (numParts == 5)
@@ -387,7 +387,6 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
       break;
     case LightEffect::Rainbow:
     case LightEffect::RainbowCycle:
-    case LightEffect::TheaterChaseRainbow:
       if (numParts < 2) {
         ESP_LOGW(CONFIG_TAG, "Missing required number of args for light effect %d", params->effect);
         return false;
@@ -398,8 +397,9 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
       if (numParts == 3)
         params->layer = atoi(parts[2].c_str());
       break;
+    case LightEffect::Transparent:
     case LightEffect::Off:
-      params->first = lightOff;
+      params->first = { lightOff, false, false };
 
       if (numParts == 2)
         params->layer = atoi(parts[1].c_str());
@@ -408,4 +408,17 @@ bool Config::parseEffect(std::string data, LightingParameters *params) {
   }
 
   return true;
+}
+
+ColorOption Config::parseColorOption(std::string data) {
+  ColorOption option = { lightOff, false, false };
+
+  if (data == "random")
+    option.random = true;
+  else if (data == "rainbow")
+    option.rainbow = true;
+  else
+    option.color = hexToColor(data);
+
+  return option;
 }

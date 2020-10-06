@@ -41,9 +41,11 @@ struct LightsConfig {
 };
 
 enum LightEffect : uint8_t {
-  Off = 0x00,
+  Transparent = 0x00,
+  Off,
   Static,
   Blink,
+  Alternate,
   ColorWipe,
   Breathe,
   Fade,
@@ -52,10 +54,8 @@ enum LightEffect : uint8_t {
   RainbowCycle,
   ColorChase,
   TheaterChase,
-  TheaterChaseRainbow,
   Twinkle,
-  Sparkle,
-  Alternate
+  Sparkle
 };
 
 enum LightCommand {
@@ -78,20 +78,26 @@ struct LightCommands {
   LightCommand headlightCommand;
 };
 
+struct ColorOption {
+  Color color;
+  bool random;
+  bool rainbow;
+};
+
 struct LightingParameters {
   std::string region;
   LightEffect effect;
   uint8_t layer;
-  Color first;
-  Color second;
-  Color third;
+  ColorOption first;
+  ColorOption second;
+  ColorOption third;
   uint32_t duration;
 };
 
 struct RenderStep {
   unsigned long step;
   unsigned long next;
-  uint32_t tempPixel;
+  void* data;
 };
 
 inline bool operator< (const LightingParameters& lhs, const LightingParameters& rhs){ return lhs.layer < rhs.layer; }

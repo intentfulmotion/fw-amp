@@ -52,6 +52,7 @@ class Config : public LifecycleBase {
 
   JsonObject serializeEffects();
   static bool parseEffect(std::string data, LightingParameters *params);
+  static ColorOption parseColorOption(std::string data);
 
   public:
     static AmpConfig ampConfig;

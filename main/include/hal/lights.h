@@ -53,6 +53,7 @@ class Lights : public LifecycleBase,
   void renderLightingEffect(LightingParameters *params, RenderStep *step);
   void color(LightingParameters *params, RenderStep *step);
   void blink(LightingParameters *params, RenderStep *step);
+  void alternate(LightingParameters *params, RenderStep *step);
   void colorWipe(LightingParameters *params, RenderStep *step);
   void breathe(LightingParameters *params, RenderStep *step);
   void fade(LightingParameters *params, RenderStep *step);
@@ -61,10 +62,8 @@ class Lights : public LifecycleBase,
   void rainbowCycle(LightingParameters *params, RenderStep *step);
   void colorChase(LightingParameters *params, RenderStep *step);
   void theaterChase(LightingParameters *params, RenderStep *step);
-  void theaterChaseRainbow(LightingParameters *params, RenderStep *step);
   void twinkle(LightingParameters *params, RenderStep *step);
   void sparkle(LightingParameters *params, RenderStep *step);
-  void alternate(LightingParameters *params, RenderStep *step);
 
   TaskHandle_t renderHandle;
 
@@ -73,6 +72,11 @@ class Lights : public LifecycleBase,
   void setRegionPixel(std::string regionName, uint32_t index, Color pixel);
   Color getRegionPixel(std::string regionName, uint32_t index);
   Color blend(Color first, Color second, float weight);
+
+  void startEffect(LightingParameters parameters);
+  void endEffect(LightingParameters parameters);
+
+  Color getStepColor(RenderStep *step, ColorOption option);
 
   public:
     Lights();

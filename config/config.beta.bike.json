@@ -11,40 +11,39 @@
 	},
 	"actions": {
 		"brake-off": [
-			{ "region": "brake", "effect": "0" }
+			{ "region": "brake", "effect": "1" }
 		],
 		"brake-normal": [
-			{ "region": "brake", "effect": "1,#800000,1" }
+			{ "region": "brake", "effect": "2,#800000,1" }
 		],
 		"brake-active": [
-			{ "region": "brake", "effect": "2,#800000,#FF0000,100,1" }
+			{ "region": "brake", "effect": "3,#800000,#FF0000,100,1" }
 		],
 		"headlight-off": [
-			{ "region": "brake", "effect": "0" }
+			{ "region": "headlight", "effect": "1" }
 		],
 		"headlight-normal": [
-			{ "region": "headlight", "effect": "1,#7F7F7F,1" }
+			{ "region": "headlight", "effect": "2,#7F7F7F,1" }
 		],
 		"headlight-bright": [
-			{ "region": "headlight", "effect": "1,#FFFFFF,1" }
+			{ "region": "headlight", "effect": "2,#FFFFFF,1" }
 		],
 		"turn-center": [
 			{ "region": "left", "effect": "0" },
 			{ "region": "right", "effect": "0" }
 		],
 		"turn-left": [
-			{ "region": "left", "effect": "2,#000000,#FFFF00,200,2" },
-			{ "region": "right", "effect": "0" }
+			{ "region": "left", "effect": "3,#000000,#FFFF00,200,2" },
+			{ "region": "right", "effect": "1" }
 		],
 		"turn-right": [
-			{ "region": "right", "effect": "2,#000000,#FFFF00,200,2" },
-			{ "region": "left", "effect": "0" }
+			{ "region": "right", "effect": "3,#000000,#FFFF00,200,2" },
+			{ "region": "left", "effect": "1" }
 		],
 		"turn-hazard": [
-			{ "region": "left", "effect": "2,#000000,#FFFF00,200,2" },
-			{ "region": "right", "effect": "2,#000000,#FFFF00,200,2" }
-		],
-		"custom": []
+			{ "region": "left", "effect": "3,#000000,#FFFF00,200,2" },
+			{ "region": "right", "effect": "3,#000000,#FFFF00,200,2" }
+		]
 	},
 	"lights": {
 		"channels": [
