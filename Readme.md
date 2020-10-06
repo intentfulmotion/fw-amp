@@ -3,13 +3,16 @@
 Firmware powering the Amp smart lighting controller. Built on a slightly modified [ESP-IDF 4.1](https://github.com/intentfulmotion/esp-idf).
 
 ## Features
+
 * Automatic brake lights
 * Motion or gesture controlled turn indicators
 * Lighting and motion detection customizable via the Amp Mixer mobile app
 * Remote control via the Amp Mixer app or Bluetooth LE
 * Customizable lighting effects that react to actions (turning, braking, etc.)
+* [Well documented APIs](https://docs.ridewithamp.com) for modifying your Amp
 
 ## Specs
+
 * ESP32 WROOM32E dual core Xtensa processor running at 80 Mhz (can be clocked up to 240 Mhz)
 * LIS3DH12 high performance, 3 axis accelerometer
 * Up to 2A of regulated 3.3V power from a 2000 mAh Li-Po battery
