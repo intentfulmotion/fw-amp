@@ -66,11 +66,11 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
   VehicleState _vehicleState;
 
   AccelerationAxis _brakeAxis;
-  AttitudeAxis _turnAxis, _orientationAxis;
+  AttitudeAxis _turnAxis;
+  Orientation _orientationTrigger;
 
   bool _autoBrake, _autoTurn, _autoOrientation, _useRelativeTurnZero;
   float _brakeThreshold, _turnThreshold, _turnCenter;
-  uint16_t _orientationMin, _orientationMax;
   bool _enabled = false;
 
   unsigned long _lastUpdate = micros();
@@ -135,8 +135,8 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
     void setTurnDetection(bool enabled) { setTurnDetection(enabled, _useRelativeTurnZero, _turnAxis, _turnThreshold); }
     void setTurnDetection(bool enabled, bool useRelativeTurnZero, AttitudeAxis axis, float threshold);
 
-    void setOrientationDetection(bool enabled) { setOrientationDetection(enabled, _orientationAxis, _orientationMin, _orientationMax); }
-    void setOrientationDetection(bool enabled, AttitudeAxis axis, uint16_t min, uint16_t max);
+    void setOrientationDetection(bool enabled) { setOrientationDetection(enabled, _orientationTrigger); }
+    void setOrientationDetection(bool enabled, Orientation orientationTrigger);
 
     // motion triggers
     void triggerVehicleState(VehicleState state, bool autoBrake = false, bool autoTurn = false, bool autoOrient = false);

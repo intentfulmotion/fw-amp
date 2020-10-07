@@ -104,8 +104,6 @@ void Config::loadMotionConfig(JsonObject motionJson) {
 
   config.brakeThreshold = motionJson["brakeThreshold"] | DEFAULT_BRAKE_THRESHOLD;
   config.turnThreshold = motionJson["turnThreshold"] | DEFAULT_TURN_THRESHOLD;
-  config.orientationUpMin = motionJson["orientationUpMin"] | DEFAULT_ORIENTATION_UP_MIN;
-  config.orientationUpMax = motionJson["orientationUpMax"] | DEFAULT_ORIENTATION_UP_MAX;
 
   uint8_t brakeAxis = (motionJson["brakeAxis"].as<uint8_t>()) | AccelerationAxis::X_Pos;
   config.brakeAxis = (AccelerationAxis)brakeAxis;
@@ -113,15 +111,15 @@ void Config::loadMotionConfig(JsonObject motionJson) {
   uint8_t turnAxis = (AttitudeAxis)(motionJson["turnAxis"].as<uint8_t>()) | AttitudeAxis::Roll;
   config.turnAxis = (AttitudeAxis)turnAxis;
 
-  uint8_t orientationAxis = (AttitudeAxis)(motionJson["orientationAxis"].as<uint8_t>()) | AttitudeAxis::Pitch;
-  config.orientationAxis = (AttitudeAxis)orientationAxis;
+  uint8_t orientationTrigger = (Orientation)(motionJson["orientation"].as<uint8_t>()) | Orientation::UnknownSideUp;
+  config.orientationTrigger = (Orientation)orientationTrigger;
 
   ESP_LOGV(CONFIG_TAG,"auto orientation config: %s", config.autoOrientation ? "true" : "false");
   ESP_LOGV(CONFIG_TAG,"auto motion config: %s", config.autoMotion ? "true" : "false");
   ESP_LOGV(CONFIG_TAG,"auto turn config: %s", config.autoTurn ? "true" : "false");
 
   ESP_LOGV(CONFIG_TAG,"brake axis: %d threshold: %F", config.brakeAxis, config.brakeThreshold);
-  ESP_LOGV(CONFIG_TAG,"turn axis: %d threshold: %F", config.turnAxis, config.turnThreshold);
+  ESP_LOGV(CONFIG_TAG,"orientation trigger: %d", config.orientationTrigger);
 
   ampConfig.motion = config;
 }

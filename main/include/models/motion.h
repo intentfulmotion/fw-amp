@@ -139,7 +139,5 @@ struct MotionConfig {
   float brakeThreshold;
   AccelerationAxis brakeAxis;
   AttitudeAxis turnAxis;
-  AttitudeAxis orientationAxis;
-  uint16_t orientationUpMin;
-  uint16_t orientationUpMax;
+  Orientation orientationTrigger;
 };

@@ -336,7 +336,7 @@ void Motion::onConfigUpdated() {
 
   setBrakeDetection(motion.autoMotion, motion.brakeAxis, motion.brakeThreshold);
   setTurnDetection(motion.autoTurn, motion.relativeTurnZero, motion.turnAxis, motion.turnThreshold);
-  setOrientationDetection(motion.autoOrientation, motion.orientationAxis, motion.orientationUpMin, motion.orientationUpMax);
+  setOrientationDetection(motion.autoOrientation, motion.orientationTrigger);
 
   resetMotionDetection();
 }
@@ -357,7 +357,7 @@ void Motion::resetMotionDetection() {
     _vehicleState.turn = TurnState::Center;
 
   if (Config::ampConfig.motion.autoOrientation)
-    _vehicleState.orientation = Orientation::TopSideUp;
+    _vehicleState.orientation = Orientation::UnknownSideUp;
 
   notifyMotionListeners();
 }
@@ -394,11 +394,9 @@ void Motion::setTurnDetection(bool enabled, bool useRelativeTurnZero, AttitudeAx
     _enabled = false;
 }
 
-void Motion::setOrientationDetection(bool enabled, AttitudeAxis axis, uint16_t min, uint16_t max) {
+void Motion::setOrientationDetection(bool enabled, Orientation trigger) {
   _autoOrientation = enabled;
-  _orientationAxis = axis;
-  _orientationMin = min;
-  _orientationMax = max;
+  _orientationTrigger = trigger;
 
   if (_autoBrake || _autoTurn || _autoOrientation)
     _enabled = true;

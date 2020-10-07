@@ -2,7 +2,7 @@
 
 #define AMP_1_0_x
 
-#define FIRMWARE_VERSION    "1.1.0"
+#define FIRMWARE_VERSION    "1.1.1"
 #define COPYRIGHT_YEAR      2020
 
 // Status LED

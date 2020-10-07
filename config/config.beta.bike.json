@@ -5,9 +5,7 @@
 		"autoTurn": false,
 		"brakeAxis": 5,
 		"brakeThreshold": 0.1,
-		"orientationAxis": 2,
-		"orientationUpMin": 70,
-		"orientationUpMax": 110
+		"orientationTrigger": 2
 	},
 	"actions": {
 		"brake-off": [
