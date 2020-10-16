@@ -18,6 +18,7 @@ class ConfigService : public NimBLECharacteristicCallbacks {
   
   NimBLECharacteristic *_configRxCharacteristic;
   NimBLECharacteristic *_configTxCharacteristic;
+  NimBLECharacteristic *_configStatusCharacteristic;
 
   public:
     ConfigService(Config *config, NimBLEServer *server);
@@ -30,5 +31,5 @@ class ConfigService : public NimBLECharacteristicCallbacks {
     void notify(uint16_t conn_id, std::string data, bool notify);
     std::vector<std::string> buildPackets(std::string data, size_t packetSize);
     
-    FreeRTOS::Semaphore eventSemaphore = FreeRTOS::Semaphore("configEvents");
+    FreeRTOS::Semaphore configTransceiver = FreeRTOS::Semaphore("configEvents");
 };

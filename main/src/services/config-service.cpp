@@ -31,33 +31,51 @@ void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
   std::string received = characteristic->getValue();
   ESP_LOGD(CONFIG_SERVICE_TAG, "Received: %s", received.c_str());
 
-  if (uuid.compare(configRxCharacteristicUUID) == 0) {
-    std::size_t partialMarker = received.find("##");
-    if (partialMarker == std::string::npos) {
-      // this is a single packet
-      ESP_LOGD(CONFIG_SERVICE_TAG, "Single packet data: %s", received.c_str());
-      processCommand(received);
+  if (uuid.compare(configStatusCharacteristicUUID) == 0) {
+    const char* data = dataStr.data();
+
+    // start buffer
+    if (data[0] == ConfigControl::ReceiveStart) {
+      rxBuffer.clear(); 
     }
-    else {
-      uint8_t totalPackets = (uint8_t)received[2];
-      uint8_t currentPacket = (uint8_t)received[3];
-      ESP_LOGD(CONFIG_SERVICE_TAG, "Received partial packet %d/%d", currentPacket, totalPackets);
-
-      // clear the buffer if we've received a new first packet
-      if (currentPacket == 1)
-        rxBuffer.clear();
-      
-      // append data to buffer
-      rxBuffer.append(received.substr(4));
-
-      // if it's the last packet
-      if (currentPacket == totalPackets) {
-        ESP_LOGD(CONFIG_SERVICE_TAG, "Received last partial packet. Total size: %d %s", rxBuffer.length(), rxBuffer.c_str());
-        processCommand(rxBuffer);
-        rxBuffer.clear();
-      }
+    // stop buffer
+    else if (data[0] = ConfigControl::ReceiveStop) {
+      processCommand(rxBuffer);
+      rxBuffer.clear();
     }
   }
+  else if (uuid.compare(configRxCharacteristicUUID) == 0) {
+    // TODO: ensure we don't exceed a max buffer size
+    rxBuffer.append(received);
+  }
+
+  // if (uuid.compare(configRxCharacteristicUUID) == 0) {
+    // std::size_t partialMarker = received.find("##");
+    // if (partialMarker == std::string::npos) {
+    //   // this is a single packet
+    //   ESP_LOGD(CONFIG_SERVICE_TAG, "Single packet data: %s", received.c_str());
+    //   processCommand(received);
+    // }
+    // else {
+    //   uint8_t totalPackets = (uint8_t)received[2];
+    //   uint8_t currentPacket = (uint8_t)received[3];
+    //   ESP_LOGD(CONFIG_SERVICE_TAG, "Received partial packet %d/%d", currentPacket, totalPackets);
+
+    //   // clear the buffer if we've received a new first packet
+    //   if (currentPacket == 1)
+    //     rxBuffer.clear();
+      
+    //   // append data to buffer
+    //   rxBuffer.append(received.substr(4));
+
+    //   // if it's the last packet
+    //   if (currentPacket == totalPackets) {
+    //     ESP_LOGD(CONFIG_SERVICE_TAG, "Received last partial packet. Total size: %d %s", rxBuffer.length(), rxBuffer.c_str());
+    //     processCommand(rxBuffer);
+    //     rxBuffer.clear();
+    //   }
+    // }
+  // }
 }
 
 void ConfigService::processCommand(std::string data) {
@@ -126,55 +144,21 @@ void ConfigService::processCommand(std::string data) {
 }
 
 std::vector<std::string> ConfigService::buildPackets(std::string data, size_t packetSize) {
-  // split up the packet
-  size_t partialPacketSize = packetSize - 4;
-
   // calculate how many packets
-  size_t packetCount = data.length() / partialPacketSize;
-  packetCount = data.length() % partialPacketSize == 0 ? packetCount : packetCount + 1;
+  size_t packetCount = data.length() / packetSize;
+  packetCount = data.length() % packetSize == 0 ? packetCount : packetCount + 1;
 
   std::vector<std::string> packets;
   // construct each packet
   for (int i = 0; i < packetCount; i++) {
     // start of packet
-    std::string packet = "##";
-    packet += (char)packetCount;
-    packet += (char)(i + 1);
-    std::string part = i == packetCount - 1 ? data.substr(i * partialPacketSize) : data.substr(i * partialPacketSize, partialPacketSize);
-    packet.append(part);
-
+    std::string packet = i == packetCount - 1 ? data.substr(i * packetSize) : data.substr(i * packetSize, packetSize);
     // add to vector of packets
     packets.push_back(packet);
   }
 
   return packets;
 }
-
-// void ConfigService::transmit(std::string data) {
-//   size_t chars = data.length();
-//   ESP_LOGD(CONFIG_SERVICE_TAG,"Transmitting %s", data.c_str());
-
-//   for (NimBLEClient* device : NimBLEDevice::getClientList()) {
-//     // get MTU of the peer device to determine packet size
-//     uint16_t mtu = device->getMTU();
-//     uint16_t packetSize = mtu - 3;
-
-//     // build multiple packets if data is larger than packet size
-//     if (chars > packetSize) {
-//       auto packets = buildPackets(data, packetSize);
-//       uint16_t count = 0;
-//       for (auto packet : packets) {
-//         ESP_LOGV(CONFIG_SERVICE_TAG,"Transmitting packet %d/%d: %s", ++count, packets.size(), packet.c_str());
-//         notify(connection, packet, true);
-//         delay(10);
-//       }
-//     }
-//     else {
-//       notify(connection, data, true);
-//       delay(10);
-//     }
-//   }
-// }
 
 void ConfigService::transmit(std::string data) {
   size_t chars = data.length();
@@ -215,15 +199,23 @@ void ConfigService::transmit(std::string data) {
     if(!(it.second & 0x0002))
       is_notification = true;
 
-    if (chars > packetSize) {
-      auto packets = buildPackets(data, packetSize);
-      for (auto packet : packets) {
-        notify(it.first, packet, is_notification);
-        delay(10);
-      }
+    // notify that we're starting a transmission
+    configTransceiver.wait("config");
+    configTransceiver.take("config");
+    _configStatusCharacteristic->writeValue(ConfigControl::TransmitStart);
+    _configStatusCharacteristic->notify(it.first, true);
+
+    // send packets
+    auto packets = buildPackets(data, packetSize);
+    for (auto packet : packets) {
+      notify(it.first, packet, is_notification);
+      delay(10);
     }
-    else
-      notify(it.first, data, is_notification);
+
+    // notify that we're ending a transmission
+    _configStatusCharacteristic->writeValue(ConfigControl::TransmitStop);
+    _configStatusCharacteristic->notify(it.first, true);
+    configTransceiver.give();
   }
 }
 

@@ -19,3 +19,10 @@ struct AmpConfig {
   std::map<std::string, std::vector<LightingParameters>*> actions;
   DeviceInfo info;
 };
+
+enum ConfigControl : uint8_t {
+  ReceiveStart = 0x01,
+  ReceiveStop,
+  TransmitStart,
+  TransmitStop
+}
