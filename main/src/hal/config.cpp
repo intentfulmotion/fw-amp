@@ -23,13 +23,17 @@ void Config::onPowerUp() {
     _isUserConfig = true;
     _valid = true;
     loadConfig();
-  }
-  else {
-    _valid = loadConfigFile(configPath);
-    loadConfig();
-  }
 
-  notifyConfigListeners();
+    notifyConfigListeners();
+  }
+  else if (ampStorage.fileExists(configPath) && loadConfigFile(configPath)) {
+    _valid = true;
+    loadConfig();
+
+    notifyConfigListeners();
+  }
+  else
+    ESP_LOGW(CONFIG_TAG, "No valid configuration exists on this Amp");
 }
 
 void Config::onPowerDown() {

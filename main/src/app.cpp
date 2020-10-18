@@ -8,7 +8,6 @@ App::App(Amp *instance) {
   amp->config.addConfigListener(this);
 
   configUpdatedQueue = xQueueCreate(1, sizeof(bool));
-  // lightModeQueue = xQueueCreate(1, sizeof(LightMode));
   vehicleQueue = xQueueCreate(5, sizeof(VehicleState));
 }
 
@@ -35,10 +34,6 @@ void App::onPowerUp() {
 
   // startup advertising
   amp->ble->startAdvertising();
-
-  // notify lights changed
-  // if (renderer != nullptr)
-    // notifyLightsChanged(renderer->getBrakeCommand(), renderer->getTurnLightCommand(), renderer->getHeadlightCommand());
 #endif
 
   // listen to motion changes
@@ -47,21 +42,11 @@ void App::onPowerUp() {
 
 void App::onPowerDown() {
   ESP_LOGD(APP_TAG,"App power down");
-
-  // TODO: remove all lighting effects
-  // if (renderHostHandle != NULL) {
-  //   vTaskDelete(renderHostHandle);
-  //   renderHostHandle = NULL;
-  // }
-
-  // if (renderer != NULL)
-  //   renderer->shutdown();
 }
 
 void App::onConfigUpdated() {
-  config = &Config::ampConfig;
-
-  // TODO: setup lights somehow
+  if (amp->config.isValid())
+    config = &Config::ampConfig;  
 
   // reset motion detection
   amp->motion.resetMotionDetection();
@@ -108,9 +93,6 @@ void App::process() {
   batteryService->process();
   updateService->process();
 #endif
-
-  // if (renderer != NULL)
-  //  renderer->process();
 }
 
 void App::onAccelerationStateChanged(AccelerationState state) {
@@ -192,9 +174,6 @@ void App::setHeadlight(LightCommand command) {
 
   _headlightCommand = command;
 
-  // if (renderer != NULL && renderer->headlightQueue != NULL)
-  //   xQueueSend(renderer->headlightQueue, &command, 0);
-
   // // update listeners
   notifyLightsChanged(NoCommand, NoCommand, command);
 }
@@ -213,8 +192,6 @@ void App::setBrakes(LightCommand command) {
       amp->lights->applyEffect(effect);
     }
   }
-  // if (renderer != NULL && renderer->brakelightQueue != NULL)
-  //   xQueueSend(renderer->brakelightQueue, &command, 0);
 
   _brakeCommand = command;
 
@@ -238,8 +215,6 @@ void App::setTurnLights(LightCommand command) {
   }
 
   _turnCommand = command;
-  // if (renderer != NULL && renderer->turnlightQueue != NULL)
-  //   xQueueSend(renderer->turnlightQueue, &command, 0);
 
   // update listeners
   notifyLightsChanged(NoCommand, command, NoCommand);

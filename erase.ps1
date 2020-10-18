@@ -1,0 +1,1 @@
+esptool.py -p COM6 -b 460800 --before default_reset --after hard_reset --chip esp32 erase_flash
