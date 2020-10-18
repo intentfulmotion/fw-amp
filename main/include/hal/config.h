@@ -47,12 +47,18 @@ class Config : public LifecycleBase {
 
   bool _filesystemError = false;
   bool _valid = false;
+  bool _isUserConfig = false;
 
   std::string configPath = "/spiffs/config.mp";
+  std::string userConfigPath = "/spiffs/config.user.mp";
 
   JsonObject serializeEffects();
   static bool parseEffect(std::string data, LightingParameters *params);
   static ColorOption parseColorOption(std::string data);
+
+  StaticJsonDocument<10000> document;
+
+  bool loadConfigFile(std::string path);
 
   public:
     static AmpConfig ampConfig;
@@ -62,9 +68,10 @@ class Config : public LifecycleBase {
     void process();
 
     static DeviceInfo getDeviceInfo();
-    bool loadConfigFile();
-    bool loadConfig(std::string msgPackData);
+    
+    void loadConfig();
     void saveConfig();
+    void saveUserConfig(std::string data, bool load = false);
 
     void loadActionConfig(JsonObject actionJson);
     void loadMotionConfig(JsonObject motionJson);
@@ -79,7 +86,7 @@ class Config : public LifecycleBase {
     std::vector<LightingParameters>* getActionEffects(std::string action);
 
     bool isValid() { return _valid; }
-    std::string getRawConfig() { return rawConfig; }
+    std::string getRawConfig() { std::string data; serializeMsgPack(document, data); return data; }
 
     static FreeRTOS::Semaphore effectsUpdating;
 };

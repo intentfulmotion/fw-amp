@@ -64,4 +64,6 @@ class AmpLeds {
     void setPixels(uint8_t channelNumber, Color color, uint16_t start, uint16_t end);
 
     LightController* addLEDStrip(LightChannel data);
+
+    static FreeRTOS::Semaphore ledsReady;
 };

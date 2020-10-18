@@ -29,7 +29,7 @@ idf_component_register(
     "include/interfaces/"
     "include/models/"
     "include/services/"
-    "libraries/ArduinoJSON/"
+    "libraries/ArduinoJson/"
 
   REQUIRES lis3dh bt spi_flash soc efuse nvs_flash esp-nimble-cpp esp_adc_cal AddressableLED
   PRIV_REQUIRES app_update fatfs freertos spiffs soc efuse

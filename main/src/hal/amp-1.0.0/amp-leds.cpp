@@ -1,5 +1,7 @@
 #include <hal/amp-1.0.0/amp-leds.h>
 
+FreeRTOS::Semaphore AmpLeds::ledsReady = FreeRTOS::Semaphore("leds");
+
 void AmpLeds::init() {
   // setup the status led
   status = new OneWireLED(NeoPixel, STATUS_LED, 0, 1);
@@ -11,6 +13,7 @@ void AmpLeds::deinit() {
 }
 
 void AmpLeds::process() {
+  ledsReady.wait();
   if (dirty) {
     status->show();
     for (auto pair : channels) {
@@ -41,8 +44,16 @@ void AmpLeds::process() {
 }
 
 LightController* AmpLeds::addLEDStrip(LightChannel data) {
+  ledsReady.wait();
+  ledsReady.take();
   ESP_LOGD(LEDS_TAG,"Adding type %d strip on channel %d with %d LEDs", data.type, data.channel, data.leds);
   AddressableLED *controller = nullptr;
+
+  if (channels.find(data.channel) != channels.end()) {
+    // remove old controller
+    auto old = channels[data.channel];
+    delete old;
+  }
 
   switch(data.type) {
     case LEDType::NeoPixel:
@@ -66,6 +77,8 @@ LightController* AmpLeds::addLEDStrip(LightChannel data) {
   channels[data.channel] = controller;
   leds[data.channel] = data.leds;
   // dirty[data.channel] = true;
+
+  ledsReady.give();
 
   return controller;
 }
@@ -94,6 +107,7 @@ Color AmpLeds::gammaCorrected(Color color) {
 }
 
 void AmpLeds::setPixel(uint8_t channelNumber, Color color, uint16_t index) {
+  ledsReady.wait();
   if (index >= leds[channelNumber]) {
     ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", index, channelNumber, leds[channelNumber]);
     return;
@@ -107,6 +121,7 @@ void AmpLeds::setPixel(uint8_t channelNumber, Color color, uint16_t index) {
 }
 
 Color AmpLeds::getPixel(uint8_t channelNumber, uint16_t index) {
+  ledsReady.wait();
   if (index >= leds[channelNumber]) {
     ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", index, channelNumber, leds[channelNumber]);
     return lightOff;
@@ -120,6 +135,7 @@ Color AmpLeds::getPixel(uint8_t channelNumber, uint16_t index) {
 }
 
 void AmpLeds::setPixels(uint8_t channelNumber, Color color, uint16_t start, uint16_t end) {
+  ledsReady.wait();
   auto controller = channels[channelNumber];
   if (controller == nullptr)
     return;

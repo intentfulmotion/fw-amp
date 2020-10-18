@@ -20,6 +20,9 @@ class ConfigService : public NimBLECharacteristicCallbacks {
   NimBLECharacteristic *_configTxCharacteristic;
   NimBLECharacteristic *_configStatusCharacteristic;
 
+  uint32_t _toReceive = 0;
+  uint32_t _received = 0;
+
   public:
     ConfigService(Config *config, NimBLEServer *server);
 

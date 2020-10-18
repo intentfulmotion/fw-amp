@@ -2,7 +2,6 @@
 #include <hal/lights.h>
 
 AmpConfig Config::ampConfig;
-StaticJsonDocument<10000> document;
 
 FreeRTOS::Semaphore Config::effectsUpdating = FreeRTOS::Semaphore("effects");
 
@@ -20,7 +19,17 @@ void Config::onPowerUp() {
   ESP_LOGI(CONFIG_TAG,"Copyright %d %s", COPYRIGHT_YEAR, ampConfig.info.manufacturer.c_str());
   ESP_LOGI(CONFIG_TAG,"IDF version: %s", esp_get_idf_version());
 
-  loadConfigFile();
+  if (ampStorage.fileExists(userConfigPath) && loadConfigFile(userConfigPath)) {
+    _isUserConfig = true;
+    _valid = true;
+    loadConfig();
+  }
+  else {
+    _valid = loadConfigFile(configPath);
+    loadConfig();
+  }
+
+  notifyConfigListeners();
 }
 
 void Config::onPowerDown() {
@@ -33,10 +42,19 @@ void Config::addConfigListener(ConfigListener *listener) {
   configListeners.push_back(listener);
 }
 
-bool Config::loadConfigFile() {
+void Config::notifyConfigListeners() {
+  for (auto listener : configListeners)
+    if (listener->configUpdatedQueue != NULL)
+      xQueueSendToFront(listener->configUpdatedQueue, &_valid, 0);
+}
+
+bool Config::loadConfigFile(std::string path) {
+  auto file = ampStorage.openFile(path);
+
   if (!_filesystemError) {
-    rawConfig = ampStorage.readFile(configPath);
-    return loadConfig(rawConfig);
+    MsgPackFileReader reader(file);
+    auto err = deserializeMsgPack(document, reader);
+    return err == DeserializationError::Ok;
   }
   else {
     ESP_LOGE(CONFIG_TAG,"Cannot load config due to error with filesystem.");
@@ -45,33 +63,45 @@ bool Config::loadConfigFile() {
 }
 
 void Config::saveConfig() {
-  auto file = ampStorage.writeFile(configPath);
+  std::string path = _isUserConfig ? userConfigPath : configPath;
+  auto file = ampStorage.writeFile(path);
 
   if (!file) {
-    ESP_LOGE(CONFIG_TAG,"Could not open file: %s", configPath.c_str());
+    ESP_LOGE(CONFIG_TAG,"Could not open file: %s", path.c_str());
     return;
   }
 
   // serialize effects
   ESP_LOGD(CONFIG_TAG,"Writing config to file");
-
   MsgPackFileWriter writer(file);
   serializeMsgPack(document, writer);
 
   fclose(file);
 }
 
-bool Config::loadConfig(std::string msgPackData) {
-  rawConfig = msgPackData;
+void Config::saveUserConfig(std::string data, bool load) {
+  auto file = ampStorage.writeFile(userConfigPath);
 
-  // load MessagePack document
-  auto err = deserializeMsgPack(document, msgPackData.c_str());
-  if (err) {
-    ESP_LOGE(CONFIG_TAG,"deserializeMsgPack failed: %s", err.c_str());
-    _valid = false;
-    return _valid;
+  if (!file) {
+    ESP_LOGE(CONFIG_TAG,"Could not open file: %s", userConfigPath.c_str());
+    return;
   }
 
+  ESP_LOGD(CONFIG_TAG, "Writing user config to file");
+  fputs(data.c_str(), file);
+  fclose(file);
+
+  if (load) {
+    auto err = deserializeMsgPack(document, data);
+    if (err == DeserializationError::Ok) {
+      _isUserConfig = true;
+      loadConfig();
+      notifyConfigListeners();
+    }
+  }
+}
+
+void Config::loadConfig() {
   JsonObject configJson = document.as<JsonObject>();
 
   JsonObject lightsJson = configJson["lights"].as<JsonObject>();
@@ -83,15 +113,7 @@ bool Config::loadConfig(std::string msgPackData) {
   JsonObject motionJson = configJson["motion"].as<JsonObject>();
   loadMotionConfig(motionJson);
 
-  rawConfig = msgPackData;
   ESP_LOGD(CONFIG_TAG,"Loaded configuration");
-  _valid = true;
-
-  for (auto listener : configListeners)
-    if (listener->configUpdatedQueue != NULL)
-      xQueueSendToFront(listener->configUpdatedQueue, &_valid, 0);
-
-  return _valid;
 }
 
 void Config::loadMotionConfig(JsonObject motionJson) {

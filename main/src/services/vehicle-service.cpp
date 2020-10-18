@@ -100,7 +100,7 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
     }
 
     // turn lights
-    if (len >= 3 && data[3] != 0x00) {
+    if (len >= 3 && data[2] != 0x00) {
       LightCommand command = (LightCommand)(data[2]);
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change turn lights: %d", command);
       _renderHost->setTurnLights(command);

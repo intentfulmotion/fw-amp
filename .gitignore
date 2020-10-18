@@ -3,3 +3,5 @@ sdkconfig.old
 .vscode/
 *.log
 device_id.bin
+preflash.sh
+flash.ps1

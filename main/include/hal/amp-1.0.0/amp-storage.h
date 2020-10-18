@@ -28,6 +28,7 @@ class AmpStorage {
     static void saveDeviceName(std::string name);
     static std::string getDeviceName();
 
+    bool fileExists(std::string filename);
     FILE* openFile(std::string filename, std::string attributes = "r");
     std::string readFile(std::string filename);
     FILE* writeFile(std::string filename);

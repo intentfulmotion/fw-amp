@@ -2,7 +2,7 @@
 
 #define AMP_1_0_x
 
-#define FIRMWARE_VERSION    "1.1.1"
+#define FIRMWARE_VERSION    "1.2.0"
 #define COPYRIGHT_YEAR      2020
 
 // Status LED
@@ -58,7 +58,7 @@ static const Color updateError(127, 0, 0);
 #include <cstdio>
 #include "esp_task_wdt.h"
 
-#define LOG_LOCAL_LEVEL ESP_LOG_INFO
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include <esp_log.h>
 
 #define PI 3.1415926535897932384626433832795

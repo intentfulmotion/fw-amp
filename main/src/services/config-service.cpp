@@ -13,8 +13,7 @@ void ConfigService::setupService() {
   _configRxCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(configRxCharacteristicUUID),
     NIMBLE_PROPERTY::WRITE | 
-    NIMBLE_PROPERTY::WRITE_NR |
-    NIMBLE_PROPERTY::NOTIFY);
+    NIMBLE_PROPERTY::WRITE_NR);
   
   _configRxCharacteristic->setCallbacks(this);
 
@@ -23,59 +22,45 @@ void ConfigService::setupService() {
     NIMBLE_PROPERTY::READ |
     NIMBLE_PROPERTY::NOTIFY);
 
+  _configStatusCharacteristic = service->createCharacteristic(
+    NimBLEUUID::fromString(configStatusCharacteristicUUID),
+    NIMBLE_PROPERTY::WRITE |
+    NIMBLE_PROPERTY::READ |
+    NIMBLE_PROPERTY::NOTIFY
+  );
+
+  _configStatusCharacteristic->setCallbacks(this);
+
   service->start();
 }
 
 void ConfigService::onWrite(NimBLECharacteristic* characteristic) {
   std::string uuid = characteristic->getUUID().toString();
   std::string received = characteristic->getValue();
-  ESP_LOGD(CONFIG_SERVICE_TAG, "Received: %s", received.c_str());
 
   if (uuid.compare(configStatusCharacteristicUUID) == 0) {
-    const char* data = dataStr.data();
+    const char* data = received.data();
 
     // start buffer
     if (data[0] == ConfigControl::ReceiveStart) {
+      memcpy(&_toReceive, (void*)&data[1], sizeof(uint32_t));
       rxBuffer.clear(); 
-    }
-    // stop buffer
-    else if (data[0] = ConfigControl::ReceiveStop) {
-      processCommand(rxBuffer);
-      rxBuffer.clear();
+      _received = 0;
+      ESP_LOGD(CONFIG_SERVICE_TAG, "Profile receive started. Expecting %d bytes", _toReceive);
     }
   }
   else if (uuid.compare(configRxCharacteristicUUID) == 0) {
-    // TODO: ensure we don't exceed a max buffer size
-    rxBuffer.append(received);
+    if (_received < _toReceive) {
+      rxBuffer.append(received);
+      _received += received.length();
+      ESP_LOGD(CONFIG_SERVICE_TAG, "Received %d bytes", _received);
+
+      if (_received == _toReceive)
+        processCommand(rxBuffer);
+    }
+    else
+      ESP_LOGW(CONFIG_SERVICE_TAG, "Exceeded expected bytes %d/%d", _toReceive, _received);
   }
-
-  // if (uuid.compare(configRxCharacteristicUUID) == 0) {
-    // std::size_t partialMarker = received.find("##");
-    // if (partialMarker == std::string::npos) {
-    //   // this is a single packet
-    //   ESP_LOGD(CONFIG_SERVICE_TAG, "Single packet data: %s", received.c_str());
-    //   processCommand(received);
-    // }
-    // else {
-    //   uint8_t totalPackets = (uint8_t)received[2];
-    //   uint8_t currentPacket = (uint8_t)received[3];
-    //   ESP_LOGD(CONFIG_SERVICE_TAG, "Received partial packet %d/%d", currentPacket, totalPackets);
-
-    //   // clear the buffer if we've received a new first packet
-    //   if (currentPacket == 1)
-    //     rxBuffer.clear();
-      
-    //   // append data to buffer
-    //   rxBuffer.append(received.substr(4));
-
-    //   // if it's the last packet
-    //   if (currentPacket == totalPackets) {
-    //     ESP_LOGD(CONFIG_SERVICE_TAG, "Received last partial packet. Total size: %d %s", rxBuffer.length(), rxBuffer.c_str());
-    //     processCommand(rxBuffer);
-    //     rxBuffer.clear();
-    //   }
-    // }
-  // }
 }
 
 void ConfigService::processCommand(std::string data) {
@@ -88,12 +73,8 @@ void ConfigService::processCommand(std::string data) {
     std::string value = data.substr(command_location + 1);
 
     if (key == "raw") {
-      ESP_LOGV(CONFIG_SERVICE_TAG, "Raw configuration received: %s", value.c_str());
-      _config->loadConfig(value);
-
-      // save config if valid
-      if (_config->isValid())
-        _config->saveConfig();
+      ESP_LOGV(CONFIG_SERVICE_TAG, "Raw configuration received");
+      _config->saveUserConfig(value, true);
     }
     else if (key == "name") {
       // limit to 100 characters
@@ -133,9 +114,14 @@ void ConfigService::processCommand(std::string data) {
     else if (key == "get") {
       if (value == "config") {
         ESP_LOGD(CONFIG_SERVICE_TAG, "Config requested");
-        std::string prefix = std::string("config:");
-        std::string configData = _config->getRawConfig();
-        transmit(prefix.append(configData));
+        std::string data = std::string("raw:").append(_config->getRawConfig());
+        uint32_t length = data.length();
+        uint8_t raw[5];
+        raw[0] = ConfigControl::TransmitStart;
+        memcpy(&raw[1], &length, sizeof(uint32_t));
+        _configStatusCharacteristic->setValue(raw);
+        _configStatusCharacteristic->notify(true);
+        transmit(data);
       }
     }
     else if (key == "save")
@@ -202,8 +188,6 @@ void ConfigService::transmit(std::string data) {
     // notify that we're starting a transmission
     configTransceiver.wait("config");
     configTransceiver.take("config");
-    _configStatusCharacteristic->writeValue(ConfigControl::TransmitStart);
-    _configStatusCharacteristic->notify(it.first, true);
 
     // send packets
     auto packets = buildPackets(data, packetSize);
@@ -211,10 +195,7 @@ void ConfigService::transmit(std::string data) {
       notify(it.first, packet, is_notification);
       delay(10);
     }
-
-    // notify that we're ending a transmission
-    _configStatusCharacteristic->writeValue(ConfigControl::TransmitStop);
-    _configStatusCharacteristic->notify(it.first, true);
+    
     configTransceiver.give();
   }
 }

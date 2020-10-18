@@ -22,7 +22,5 @@ struct AmpConfig {
 
 enum ConfigControl : uint8_t {
   ReceiveStart = 0x01,
-  ReceiveStop,
-  TransmitStart,
-  TransmitStop
-}
+  TransmitStart
+};

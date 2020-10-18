@@ -38,7 +38,7 @@ void BluetoothLE::startServer(void *params) {
   NimBLEDevice::setSecurityInitKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   NimBLEDevice::setSecurityRespKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   NimBLEDevice::init("");
-  NimBLEDevice::setMTU(527);
+  NimBLEDevice::setMTU(512);
 
   ble->server = NimBLEDevice::createServer();
   ble->advertising = ble->server->getAdvertising();

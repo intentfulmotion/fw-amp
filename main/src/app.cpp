@@ -65,6 +65,9 @@ void App::onConfigUpdated() {
 
   // reset motion detection
   amp->motion.resetMotionDetection();
+  setBrakes(LightCommand::LightsReset);
+  setTurnLights(LightCommand::LightsReset);
+  setHeadlight(LightCommand::LightsReset);
 }
 
 void App::process() {

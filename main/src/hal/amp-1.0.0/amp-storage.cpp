@@ -57,6 +57,16 @@ std::string AmpStorage::getDefaultName() {
   return string_format("Amp-%02X%02X", mac[4], mac[5]);
 }
 
+bool AmpStorage::fileExists(std::string filename) {
+  struct stat st;
+  int result = stat(filename.c_str(), &st);
+  return result == 0;
+}
+
+FILE* AmpStorage::openFile(std::string filename, std::string attributes) {
+  return fopen(filename.c_str(), attributes.c_str());
+}
+
 std::string AmpStorage::readFile(std::string filename) {
   FILE* file = fopen(filename.c_str(), "r");
 
