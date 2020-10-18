@@ -5,3 +5,4 @@ sdkconfig.old
 device_id.bin
 preflash.sh
 flash.ps1
+erase.ps1
