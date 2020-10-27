@@ -25,6 +25,13 @@ void VehicleService::setupService() {
   
   _controlCharacteristic->setCallbacks(this);
 
+  // set initial control
+  uint8_t initialControl[3];
+  initialControl[0] = _motion->isBrakeDetectionEnabled() ? 0x01 : 0x02;
+  initialControl[1] = _motion->isTurnDetectionEnabled() ? 0x01 : 0x02;
+  initialControl[2] = _motion->isOrientationDetectionEnabled() ? 0x01 : 0x02;
+  _controlCharacteristic->setValue(&initialControl[0], sizeof(initialControl));
+
   _stateCharacteristic = service->createCharacteristic(
     BLEUUID::fromString(vehicleStateCharacteristicUUID),
     NIMBLE_PROPERTY::READ |
@@ -65,22 +72,38 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
   size_t len = dataStr.length();
 
   if (uuid.equals(_controlCharacteristic->getUUID())) {
-    ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle control onwrite");
+    ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle control onwrite");    
+    uint8_t changed[3];
+    
     if (len >= 1 && data[0] != 0x00) {
       bool enableAutoBrakes = data[0] == 0x01;
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change auto brake detection: %s", enableAutoBrakes ? "enabled" : "disabled");
       _motion->setBrakeDetection(enableAutoBrakes);
+      changed[0] = data[0];
     }
+    else changed[0] = 0x00;
+
     if (len >= 2 && data[1] != 0x00) {
       bool enableAutoTurn = data[1] == 0x01;
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change auto turn detection: %s", enableAutoTurn ? "enabled" : "disabled");
       _motion->setTurnDetection(enableAutoTurn);
+      changed[1] = data[1];
     }
+    else changed[1] = 0x00;
+
     if (len >= 3 && data[2] != 0x00) {
       bool enableAutoOrientation = data[2] == 0x01;
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change auto orientation detection: %s", enableAutoOrientation ? "enabled" : "disabled");
       _motion->setOrientationDetection(enableAutoOrientation);
-    }      
+      changed[2] = data[2];
+    }
+    else changed[2] = 0x00;
+
+    // notify that we've changed control
+    if (changed[0] + changed[1] + changed[2] > 0) {
+      _controlCharacteristic->setValue(&changed[0], sizeof(changed));
+      _controlCharacteristic->notify(true);
+    }
   }
   else if (uuid.equals(_lightCharacteristic->getUUID())) {
     ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle lights onwrite");
@@ -153,13 +176,12 @@ void VehicleService::process() {
 }
 
 void VehicleService::onLightsChanged(LightCommands commands) {
-  // union {
-  //   LightCommands commands = commands;
-  //   uint8_t bytes[4];
-  // };
-  
-  // _lightCharacteristic->setValue((uint8_t*) &bytes, sizeof(uint8_t) * 4);
-  _lightCharacteristic->setValue<LightCommands>(commands);
+  uint8_t payload[3];
+  payload[0] = commands.brakeCommand;
+  payload[1] = commands.headlightCommand;
+  payload[2] = commands.turnCommand;
+
+  _lightCharacteristic->setValue(&payload[0], sizeof(payload));
   _lightCharacteristic->notify(true);
 }
 

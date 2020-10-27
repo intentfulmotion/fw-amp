@@ -113,6 +113,7 @@ void App::onAccelerationStateChanged(AccelerationState state) {
 }
 
 void App::onTurnStateChanged(TurnState state) {
+  ESP_LOGD(APP_TAG, "on turn state changed");
   LightCommand command;
 
   switch (state) {
@@ -135,6 +136,7 @@ void App::onTurnStateChanged(TurnState state) {
 }
 
 void App::onOrientationChanged(Orientation state) {
+  ESP_LOGD(APP_TAG, "on orientation state changed");
   LightCommand command;
 
   switch (state) {
@@ -222,9 +224,9 @@ void App::setTurnLights(LightCommand command) {
 
 void App::notifyLightsChanged(LightCommand brakeCommand, LightCommand turnCommand, LightCommand headlightCommand) {
   LightCommands commands;
-  commands.brakeCommand = brakeCommand;
-  commands.turnCommand = turnCommand;
-  commands.headlightCommand = headlightCommand;
+  commands.brakeCommand = brakeCommand == LightCommand::NoCommand || brakeCommand == LightCommand::LightsReset ? _brakeCommand : brakeCommand;
+  commands.turnCommand = turnCommand == LightCommand::NoCommand || turnCommand == LightCommand::LightsReset ? _turnCommand : turnCommand;
+  commands.headlightCommand = headlightCommand == LightCommand::NoCommand || headlightCommand == LightCommand::LightsReset ? _headlightCommand : headlightCommand;
 
   for (auto listener : renderListeners) {
     if (listener->lightsChangedQueue != NULL)

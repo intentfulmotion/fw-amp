@@ -74,8 +74,8 @@ enum LightCommand {
 
 struct LightCommands {
   LightCommand brakeCommand;
-  LightCommand turnCommand;
   LightCommand headlightCommand;
+  LightCommand turnCommand;
 };
 
 struct ColorOption {

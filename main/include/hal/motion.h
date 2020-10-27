@@ -144,5 +144,9 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
     void triggerTurnState(TurnState state, bool autoTurn = false);
     void triggerOrientationState(Orientation state, bool autoOrient = false);
 
+    bool isBrakeDetectionEnabled() { return _autoBrake; }
+    bool isTurnDetectionEnabled() { return _autoTurn; }
+    bool isOrientationDetectionEnabled() { return _autoOrientation; }
+
     static void sampleTask(void *parameters);
 };

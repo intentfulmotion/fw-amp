@@ -19,7 +19,7 @@
 
 static const char* BLE_TAG = "ble";
 
-class BluetoothLE : public LifecycleBase, public TouchListener, public NimBLEServerCallbacks {
+class BluetoothLE : public LifecycleBase, public TouchListener, public NimBLEServerCallbacks, public NimBLESecurityCallbacks {
   NimBLEAdvertising *advertising;
   NimBLEAdvertisementData advertisementData;
   std::stack<bool> connectedDevices;
@@ -45,6 +45,13 @@ class BluetoothLE : public LifecycleBase, public TouchListener, public NimBLESer
     void onConnect(NimBLEServer *server) { }
     void onConnect(NimBLEServer *server, ble_gap_conn_desc *desc);
     void onDisconnect(NimBLEServer *server);
+
+    // NimBLESecurityCallbacks
+    uint32_t onPassKeyRequest() { return 0; }
+    void onPassKeyNotify(uint32_t passkey) { ESP_LOGD(BLE_TAG, "Passkey notification: %d", passkey); }
+    bool onSecurityRequest() { return true; }
+    void onAuthenticationComplete(ble_gap_conn_desc *conn) { ESP_LOGD(BLE_TAG, "Authentication completed"); }
+    bool onConfirmPIN(uint32_t pin) { return pin == 0; }
 
     // TouchListener
     void onTouchEvent(std::vector<TouchType> *touches);

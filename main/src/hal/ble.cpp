@@ -33,8 +33,8 @@ void BluetoothLE::process() {
 void BluetoothLE::startServer(void *params) {
   auto ble = BluetoothLE::instance();
 
-  NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
-  NimBLEDevice::setSecurityAuth(BLE_SM_PAIR_AUTHREQ_BOND);
+  NimBLEDevice::setSecurityAuth(true, true, true);
+  NimBLEDevice::setSecurityCallbacks(ble);
   NimBLEDevice::setSecurityInitKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   NimBLEDevice::setSecurityRespKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   NimBLEDevice::init("");
@@ -43,6 +43,7 @@ void BluetoothLE::startServer(void *params) {
   ble->server = NimBLEDevice::createServer();
   ble->advertising = ble->server->getAdvertising();
   ble->server->start();
+  ble->server->setCallbacks(ble, true);
   bleReady.give();
 
   for (;;) {
@@ -64,7 +65,7 @@ void BluetoothLE::startAdvertising() {
   // advertising->setScanFilter(true, true);
   advertising->start();
 
-  updateAdvertising(AmpStorage::getDeviceName(), true);
+  updateAdvertising(AmpStorage::getDeviceName(), false);
 }
 
 void BluetoothLE::updateAdvertising(std::string name, bool publicAdvertise) {
@@ -73,7 +74,7 @@ void BluetoothLE::updateAdvertising(std::string name, bool publicAdvertise) {
   ESP_LOGD(BLE_TAG,"Updating advertising - name: %s, %s", name.c_str(), publicAdvertise ? "public" : "private");
   NimBLEAdvertisementData data;
   data.setCompleteServices(NimBLEUUID::fromString(vehicleServiceUUID));
-  data.setFlags(publicAdvertise ? BLE_HS_ADV_F_DISC_GEN : BLE_HS_ADV_F_DISC_LTD);
+  data.setFlags(BLE_HS_ADV_F_DISC_GEN);
   advertising->setAdvertisementData(data);
   data.setName(name);
   advertising->setName(name.c_str());
