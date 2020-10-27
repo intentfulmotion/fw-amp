@@ -58,24 +58,33 @@ enum LightEffect : uint8_t {
   Sparkle
 };
 
-enum LightCommand {
+enum Actions {
   NoCommand = 0x00,
   LightsOff,
   LightsReset,
-  LightsBrakeNormal,
-  LightsBrakeActive,
+  LightsMotionNeutral,
+  LightsMotionBrakes,
+  LightsMotionAcceleration,
   LightsHeadlightNormal,
   LightsHeadlightBright,
   LightsTurnCenter,
   LightsTurnLeft,
   LightsTurnRight,
-  LightsTurnHazard
+  LightsTurnHazard,
+  LightsOrientationUnknown,
+  LightsOrientationTop,
+  LightsOrientationBottom,
+  LightsOrientationLeft,
+  LightsOrientationRight,
+  LightsOrientationFront,
+  LightsOrientationBack
 };
 
 struct LightCommands {
-  LightCommand brakeCommand;
-  LightCommand headlightCommand;
-  LightCommand turnCommand;
+  Actions motionCommand;
+  Actions headlightCommand;
+  Actions turnCommand;
+  Actions orientationCommand;
 };
 
 struct ColorOption {

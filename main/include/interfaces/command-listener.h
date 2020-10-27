@@ -4,6 +4,6 @@
 class CommandListener {
   public:
     QueueHandle_t headlightQueue;
-    QueueHandle_t brakelightQueue;
+    QueueHandle_t motionlightQueue;
     QueueHandle_t turnlightQueue;
 };

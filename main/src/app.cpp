@@ -50,9 +50,9 @@ void App::onConfigUpdated() {
 
   // reset motion detection
   amp->motion.resetMotionDetection();
-  setBrakes(LightCommand::LightsReset);
-  setTurnLights(LightCommand::LightsReset);
-  setHeadlight(LightCommand::LightsReset);
+  setMotion(Actions::LightsReset);
+  setTurnLights(Actions::LightsReset);
+  setHeadlight(Actions::LightsReset);
 }
 
 void App::process() {
@@ -97,38 +97,41 @@ void App::process() {
 
 void App::onAccelerationStateChanged(AccelerationState state) {
   ESP_LOGD(APP_TAG, "on acceleration state changed");
-  LightCommand command;
+  Actions command;
 
   switch (state) {
     case AccelerationState::Braking:
-      command = LightCommand::LightsBrakeActive;
+      command = Actions::LightsMotionBrakes;
+      break;
+    case AccelerationState::Accelerating:
+      command = Actions::LightsMotionAcceleration;
       break;
     default:
     case AccelerationState::Neutral:
-      command = LightCommand::LightsBrakeNormal;
+      command = Actions::LightsMotionNeutral;
       break;
   }
 
-  setBrakes(command);
+  setMotion(command);
 }
 
 void App::onTurnStateChanged(TurnState state) {
   ESP_LOGD(APP_TAG, "on turn state changed");
-  LightCommand command;
+  Actions command;
 
   switch (state) {
     case TurnState::Left:
-      command = LightCommand::LightsTurnLeft;
+      command = Actions::LightsTurnLeft;
       break;
     case TurnState::Right:
-      command = LightCommand::LightsTurnRight;
+      command = Actions::LightsTurnRight;
       break;
     case TurnState::Hazard:
-      command = LightCommand::LightsTurnHazard;
+      command = Actions::LightsTurnHazard;
       break;
     case TurnState::Center:
     default:
-      command = LightCommand::LightsTurnCenter;
+      command = Actions::LightsTurnCenter;
       break;
   }
 
@@ -137,31 +140,41 @@ void App::onTurnStateChanged(TurnState state) {
 
 void App::onOrientationChanged(Orientation state) {
   ESP_LOGD(APP_TAG, "on orientation state changed");
-  LightCommand command;
+  Actions command;
 
   switch (state) {
+    case Orientation::UnknownSideUp:
+      command = Actions::LightsOrientationUnknown;
+      break;
     case Orientation::TopSideUp:
-      command = LightCommand::LightsOff;
+      command = Actions::LightsOrientationTop;
+      break;
+    case Orientation::BottomSideUp:
+      command = Actions::LightsOrientationBottom;
+      break;
+    case Orientation::LeftSideUp:
+      command = Actions::LightsOrientationLeft;
+      break;
+    case Orientation::RightSideUp:
+      command = Actions::LightsOrientationRight;
       break;
     case Orientation::FrontSideUp:
+      command = Actions::LightsOrientationFront;
+      break;
     case Orientation::BackSideUp:
-      setTurnLights(LightCommand::LightsTurnCenter);
-      setBrakes(LightCommand::LightsBrakeNormal);
-      setHeadlight(LightCommand::LightsHeadlightNormal);
-      return;
+      command = Actions::LightsOrientationBack;
+      break;
     default:
-      command = LightCommand::LightsReset;
+      command = Actions::LightsReset;
       break;
   }
 
-  setTurnLights(command);
-  setBrakes(command);
-  setHeadlight(command);
+  setOrientationLights(command);
 }
 
-void App::setHeadlight(LightCommand command) {
+void App::setHeadlight(Actions command) {
   auto actions = config->actions;
-  if (command == LightCommand::LightsReset)
+  if (command == Actions::LightsReset)
     command = _headlightCommand;
 
   std::string actionName = Lights::headlightActions[command];
@@ -177,16 +190,16 @@ void App::setHeadlight(LightCommand command) {
   _headlightCommand = command;
 
   // // update listeners
-  notifyLightsChanged(NoCommand, NoCommand, command);
+  notifyLightsChanged(NoCommand, NoCommand, command, NoCommand);
 }
 
-void App::setBrakes(LightCommand command) {
+void App::setMotion(Actions command) {
   auto actions = config->actions;
-  if (command == LightCommand::LightsReset)
-    command = _brakeCommand;
+  if (command == Actions::LightsReset)
+    command = _motionCommand;
 
-  std::string actionName = Lights::brakeActions[command];
-  ESP_LOGI(APP_TAG, "Setting brakes - Command: %d, Action name: %s", command, actionName.c_str());
+  std::string actionName = Lights::motionActions[command];
+  ESP_LOGI(APP_TAG, "Setting motion - Command: %d, Action name: %s", command, actionName.c_str());
 
   if (actions.find(actionName) != actions.end()) {
     for (auto effect : *actions[actionName]) {
@@ -195,15 +208,15 @@ void App::setBrakes(LightCommand command) {
     }
   }
 
-  _brakeCommand = command;
+  _motionCommand = command;
 
   // update listeners
-  notifyLightsChanged(command, NoCommand, NoCommand);
+  notifyLightsChanged(command, NoCommand, NoCommand, NoCommand);
 }
 
-void App::setTurnLights(LightCommand command) {
+void App::setTurnLights(Actions command) {
   auto actions = config->actions;
-  if (command == LightCommand::LightsReset)
+  if (command == Actions::LightsReset)
     command = _turnCommand;
 
   std::string actionName = Lights::turnActions[command];
@@ -219,14 +232,36 @@ void App::setTurnLights(LightCommand command) {
   _turnCommand = command;
 
   // update listeners
-  notifyLightsChanged(NoCommand, command, NoCommand);
+  notifyLightsChanged(NoCommand, command, NoCommand, NoCommand);
 }
 
-void App::notifyLightsChanged(LightCommand brakeCommand, LightCommand turnCommand, LightCommand headlightCommand) {
+void App::setOrientationLights(Actions command) {
+  auto actions = config->actions;
+  if (command == Actions::LightsReset)
+    command = _orientationCommand;
+
+  std::string actionName = Lights::orientationActions[command];
+  ESP_LOGI(APP_TAG, "Setting orientation - Command: %d, Action name: %s", command, actionName.c_str());
+  
+  if (actions.find(actionName) != actions.end()) {
+    for (auto effect : *actions[actionName]) {
+      ESP_LOGD(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
+      amp->lights->applyEffect(effect);
+    }
+  }
+
+  _orientationCommand = command;
+
+  // update listeners
+  notifyLightsChanged(NoCommand, NoCommand, NoCommand, command);
+}
+
+void App::notifyLightsChanged(Actions motionCommand, Actions turnCommand, Actions headlightCommand, Actions orientationCommand) {
   LightCommands commands;
-  commands.brakeCommand = brakeCommand == LightCommand::NoCommand || brakeCommand == LightCommand::LightsReset ? _brakeCommand : brakeCommand;
-  commands.turnCommand = turnCommand == LightCommand::NoCommand || turnCommand == LightCommand::LightsReset ? _turnCommand : turnCommand;
-  commands.headlightCommand = headlightCommand == LightCommand::NoCommand || headlightCommand == LightCommand::LightsReset ? _headlightCommand : headlightCommand;
+  commands.motionCommand = motionCommand == Actions::NoCommand || motionCommand == Actions::LightsReset ? _motionCommand : motionCommand;
+  commands.turnCommand = turnCommand == Actions::NoCommand || turnCommand == Actions::LightsReset ? _turnCommand : turnCommand;
+  commands.headlightCommand = headlightCommand == Actions::NoCommand || headlightCommand == Actions::LightsReset ? _headlightCommand : headlightCommand;
+  commands.orientationCommand = orientationCommand == Actions::NoCommand || orientationCommand == Actions::LightsReset ? _orientationCommand : orientationCommand;
 
   for (auto listener : renderListeners) {
     if (listener->lightsChangedQueue != NULL)

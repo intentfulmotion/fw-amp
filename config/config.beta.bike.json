@@ -11,10 +11,13 @@
 		"brake-off": [
 			{ "region": "brake", "effect": "1" }
 		],
-		"brake-normal": [
+		"motion-neutral": [
 			{ "region": "brake", "effect": "2,#800000,1" }
 		],
-		"brake-active": [
+		"motion-acceleration": [
+			{ "region": "brake", "effect": "9,100,4" }
+		],
+		"motion-brakes": [
 			{ "region": "brake", "effect": "3,#800000,#FF0000,100,1" }
 		],
 		"headlight-off": [

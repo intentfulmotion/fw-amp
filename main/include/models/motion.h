@@ -137,7 +137,8 @@ struct MotionConfig {
   float turnZero;
   float turnThreshold;
   float brakeThreshold;
-  AccelerationAxis brakeAxis;
+  float accelerationThreshold;
+  AccelerationAxis motionAxis;
   AttitudeAxis turnAxis;
   Orientation orientationTrigger;
 };

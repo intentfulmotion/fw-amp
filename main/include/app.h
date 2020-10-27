@@ -24,9 +24,10 @@ class App : public LifecycleBase, public ConfigListener, public MotionListener, 
   bool _renderHostActive = false;
   std::vector<RenderListener*> renderListeners;
 
-  LightCommand _brakeCommand = LightCommand::LightsBrakeNormal;
-  LightCommand _headlightCommand = LightCommand::LightsHeadlightNormal;
-  LightCommand _turnCommand = LightCommand::LightsTurnCenter;
+  Actions _motionCommand = Actions::LightsMotionNeutral;
+  Actions _headlightCommand = Actions::LightsHeadlightNormal;
+  Actions _turnCommand = Actions::LightsTurnCenter;
+  Actions _orientationCommand = Actions::LightsOrientationUnknown;
 
 #if defined(BLE_ENABLED)
   // services
@@ -50,10 +51,11 @@ class App : public LifecycleBase, public ConfigListener, public MotionListener, 
     void onTurnStateChanged(TurnState state);
     void onOrientationChanged(Orientation state);
 
-    void setHeadlight(LightCommand command);
-    void setBrakes(LightCommand command);
-    void setTurnLights(LightCommand command);
-    void notifyLightsChanged(LightCommand brakeCommand = NoCommand, LightCommand turnCommand = NoCommand, LightCommand headlightCommand = NoCommand);
+    void setHeadlight(Actions command);
+    void setMotion(Actions command);
+    void setTurnLights(Actions command);
+    void setOrientationLights(Actions command);
+    void notifyLightsChanged(Actions motionCommand = NoCommand, Actions turnCommand = NoCommand, Actions headlightCommand = NoCommand, Actions orientationCommand = NoCommand);
     
     static void startRenderHost(void *parameters);
 };

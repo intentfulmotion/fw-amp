@@ -129,10 +129,11 @@ void Config::loadMotionConfig(JsonObject motionJson) {
   config.relativeTurnZero = motionJson["relativeTurnZero"] | true;
 
   config.brakeThreshold = motionJson["brakeThreshold"] | DEFAULT_BRAKE_THRESHOLD;
+  config.accelerationThreshold = motionJson["accelerationThreshold"] | DEFAULT_ACCELERATION_THRESHOLD;
   config.turnThreshold = motionJson["turnThreshold"] | DEFAULT_TURN_THRESHOLD;
 
-  uint8_t brakeAxis = (motionJson["brakeAxis"].as<uint8_t>()) | AccelerationAxis::X_Pos;
-  config.brakeAxis = (AccelerationAxis)brakeAxis;
+  uint8_t motionAxis = (motionJson["motionAxis"].as<uint8_t>()) | AccelerationAxis::X_Pos;
+  config.motionAxis = (AccelerationAxis)motionAxis;
 
   uint8_t turnAxis = (AttitudeAxis)(motionJson["turnAxis"].as<uint8_t>()) | AttitudeAxis::Roll;
   config.turnAxis = (AttitudeAxis)turnAxis;
@@ -144,7 +145,7 @@ void Config::loadMotionConfig(JsonObject motionJson) {
   ESP_LOGV(CONFIG_TAG,"auto motion config: %s", config.autoMotion ? "true" : "false");
   ESP_LOGV(CONFIG_TAG,"auto turn config: %s", config.autoTurn ? "true" : "false");
 
-  ESP_LOGV(CONFIG_TAG,"brake axis: %d threshold: %F", config.brakeAxis, config.brakeThreshold);
+  ESP_LOGV(CONFIG_TAG,"motion axis: %d brake threshold: %.2f acceleration threshold: %.2f", config.motionAxis, config.brakeThreshold, config.accelerationThreshold);
   ESP_LOGV(CONFIG_TAG,"orientation trigger: %d", config.orientationTrigger);
 
   ampConfig.motion = config;
@@ -270,7 +271,7 @@ bool Config::addEffect(std::string action, std::string region, std::string data,
       }
 
   if (!found)
-    for (auto const& [command, actionName] : Lights::brakeActions)
+    for (auto const& [command, actionName] : Lights::motionActions)
       if (actionName.compare(action) == 0) {
         found = true;
         break;

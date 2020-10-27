@@ -1,23 +1,35 @@
 #include <hal/lights.h>
 
-std::map<LightCommand, std::string> Lights::headlightActions = {
-  std::make_pair(LightCommand::LightsOff, "headlight-off"),
-  std::make_pair(LightCommand::LightsHeadlightNormal, "headlight-normal"),
-  std::make_pair(LightCommand::LightsHeadlightBright, "headlight-bright")
+std::map<Actions, std::string> Lights::headlightActions = {
+  std::make_pair(Actions::LightsOff, "headlight-off"),
+  std::make_pair(Actions::LightsHeadlightNormal, "headlight-normal"),
+  std::make_pair(Actions::LightsHeadlightBright, "headlight-bright")
 };
 
-std::map<LightCommand, std::string> Lights::brakeActions = {
-  std::make_pair(LightCommand::LightsOff, "brake-off"),
-  std::make_pair(LightCommand::LightsBrakeNormal, "brake-normal"),
-  std::make_pair(LightCommand::LightsBrakeActive, "brake-active")
+std::map<Actions, std::string> Lights::motionActions = {
+  std::make_pair(Actions::LightsOff, "motion-off"),
+  std::make_pair(Actions::LightsMotionNeutral, "motion-neutral"),
+  std::make_pair(Actions::LightsMotionBrakes, "motion-brakes"),
+  std::make_pair(Actions::LightsMotionAcceleration, "motion-acceleration")
 };
 
-std::map<LightCommand, std::string> Lights::turnActions = {
-  std::make_pair(LightCommand::LightsOff, "turn-off"),
-  std::make_pair(LightCommand::LightsTurnCenter, "turn-center"),
-  std::make_pair(LightCommand::LightsTurnLeft, "turn-left"),
-  std::make_pair(LightCommand::LightsTurnRight, "turn-right"),
-  std::make_pair(LightCommand::LightsTurnHazard, "turn-hazard")
+std::map<Actions, std::string> Lights::turnActions = {
+  std::make_pair(Actions::LightsOff, "turn-off"),
+  std::make_pair(Actions::LightsTurnCenter, "turn-center"),
+  std::make_pair(Actions::LightsTurnLeft, "turn-left"),
+  std::make_pair(Actions::LightsTurnRight, "turn-right"),
+  std::make_pair(Actions::LightsTurnHazard, "turn-hazard")
+};
+
+std::map<Actions, std::string> Lights::orientationActions = {
+  std::make_pair(Actions::LightsOff, "orientation-off"),
+  std::make_pair(Actions::LightsOrientationUnknown, "orientation-unknown"),
+  std::make_pair(Actions::LightsOrientationTop, "orientation-top"),
+  std::make_pair(Actions::LightsOrientationBottom, "orientation-bottom"),
+  std::make_pair(Actions::LightsOrientationLeft, "orientation-left"),
+  std::make_pair(Actions::LightsOrientationRight, "orientation-right"),
+  std::make_pair(Actions::LightsOrientationFront, "orientation-front"),
+  std::make_pair(Actions::LightsOrientationBack, "orientation-back")
 };
 
 Lights::Lights() {

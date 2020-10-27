@@ -3,9 +3,10 @@
 
 class RenderHost {    
   public:
-    virtual void setBrakes(LightCommand command) = 0;
-    virtual void setHeadlight(LightCommand command) = 0;
-    virtual void setTurnLights(LightCommand command) = 0;
+    virtual void setMotion(Actions command) = 0;
+    virtual void setHeadlight(Actions command) = 0;
+    virtual void setTurnLights(Actions command) = 0;
+    virtual void setOrientationLights(Actions command) = 0;
 };
 
 class RenderListener {

@@ -27,7 +27,7 @@ void VehicleService::setupService() {
 
   // set initial control
   uint8_t initialControl[3];
-  initialControl[0] = _motion->isBrakeDetectionEnabled() ? 0x01 : 0x02;
+  initialControl[0] = _motion->isMotionDetectionEnabled() ? 0x01 : 0x02;
   initialControl[1] = _motion->isTurnDetectionEnabled() ? 0x01 : 0x02;
   initialControl[2] = _motion->isOrientationDetectionEnabled() ? 0x01 : 0x02;
   _controlCharacteristic->setValue(&initialControl[0], sizeof(initialControl));
@@ -76,9 +76,9 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
     uint8_t changed[3];
     
     if (len >= 1 && data[0] != 0x00) {
-      bool enableAutoBrakes = data[0] == 0x01;
-      ESP_LOGD(VEHICLE_SERVICE_TAG,"change auto brake detection: %s", enableAutoBrakes ? "enabled" : "disabled");
-      _motion->setBrakeDetection(enableAutoBrakes);
+      bool enableAutoMotion = data[0] == 0x01;
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change auto motion detection: %s", enableAutoMotion ? "enabled" : "disabled");
+      _motion->setMotionDetection(enableAutoMotion);
       changed[0] = data[0];
     }
     else changed[0] = 0x00;
@@ -108,25 +108,32 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
   else if (uuid.equals(_lightCharacteristic->getUUID())) {
     ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle lights onwrite");
 
-    // brake lights
+    // motion lights
     if (len >= 1 && data[0] != 0x00) {
-      LightCommand command = (LightCommand)(data[0]);
-      ESP_LOGD(VEHICLE_SERVICE_TAG,"change brakes: %d", command);
-      _renderHost->setBrakes(command);
+      Actions command = (Actions)(data[0]);
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change motion lights: %d", command);
+      _renderHost->setMotion(command);
     }
 
     // headlights
     if (len >= 2 && data[1] != 0x00) {
-      LightCommand command = (LightCommand)(data[1]);
+      Actions command = (Actions)(data[1]);
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change headlights: %d", command);
       _renderHost->setHeadlight(command);
     }
 
     // turn lights
     if (len >= 3 && data[2] != 0x00) {
-      LightCommand command = (LightCommand)(data[2]);
+      Actions command = (Actions)(data[2]);
       ESP_LOGD(VEHICLE_SERVICE_TAG,"change turn lights: %d", command);
       _renderHost->setTurnLights(command);
+    }
+
+    // orientation lights
+    if (len >= 4 && data[2] != 0x00) {
+      Actions command = (Actions)(data[3]);
+      ESP_LOGD(VEHICLE_SERVICE_TAG,"change orientation lights: %d", command);
+      _renderHost->setOrientationLights(command);
     }
   }
   else if (uuid.equals(_restartCharacteristic->getUUID())) {
@@ -176,10 +183,11 @@ void VehicleService::process() {
 }
 
 void VehicleService::onLightsChanged(LightCommands commands) {
-  uint8_t payload[3];
-  payload[0] = commands.brakeCommand;
+  uint8_t payload[4];
+  payload[0] = commands.motionCommand;
   payload[1] = commands.headlightCommand;
   payload[2] = commands.turnCommand;
+  payload[3] = commands.orientationCommand;
 
   _lightCharacteristic->setValue(&payload[0], sizeof(payload));
   _lightCharacteristic->notify(true);

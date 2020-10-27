@@ -65,20 +65,20 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
 
   VehicleState _vehicleState;
 
-  AccelerationAxis _brakeAxis;
+  AccelerationAxis _motionAxis;
   AttitudeAxis _turnAxis;
   Orientation _orientationTrigger;
 
-  bool _autoBrake, _autoTurn, _autoOrientation, _useRelativeTurnZero;
-  float _brakeThreshold, _turnThreshold, _turnCenter;
+  bool _autoMotion, _autoTurn, _autoOrientation, _useRelativeTurnZero;
+  float _brakeThreshold, _accelerationThreshold, _turnThreshold, _turnCenter;
   bool _enabled = false;
 
   unsigned long _lastUpdate = micros();
   unsigned long _lastSample = micros();
 
-  unsigned long _lastBrakeUpdate = millis();
-  const unsigned long BRAKE_DEBOUNCE = 100;
-  const unsigned long BRAKE_ACTIVE_DEBOUNCE = 1000;
+  unsigned long _lastMotionUpdate = millis();
+  const unsigned long MOTION_DEBOUNCE = 100;
+  const unsigned long MOTION_ACTIVE_DEBOUNCE = 1000;
 
   // update config
   void updateGravityFilter(float alpha);
@@ -125,12 +125,12 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
     // motion detection
     void resetMotionDetection();
 
-    bool detectBraking();
+    bool detectMotion();
     bool detectTurning();
     bool detectOrientation();
 
-    void setBrakeDetection(bool enabled) { setBrakeDetection(enabled, _brakeAxis, _brakeThreshold); }
-    void setBrakeDetection(bool enabled, AccelerationAxis axis, float threshold);
+    void setMotionDetection(bool enabled) { setMotionDetection(enabled, _motionAxis, _brakeThreshold, _accelerationThreshold); }
+    void setMotionDetection(bool enabled, AccelerationAxis axis, float brakeThreshold, float acclerationThreshold);
 
     void setTurnDetection(bool enabled) { setTurnDetection(enabled, _useRelativeTurnZero, _turnAxis, _turnThreshold); }
     void setTurnDetection(bool enabled, bool useRelativeTurnZero, AttitudeAxis axis, float threshold);
@@ -139,12 +139,12 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
     void setOrientationDetection(bool enabled, Orientation orientationTrigger);
 
     // motion triggers
-    void triggerVehicleState(VehicleState state, bool autoBrake = false, bool autoTurn = false, bool autoOrient = false);
-    void triggerAccelerationState(AccelerationState state, bool autoBrake = false);
+    void triggerVehicleState(VehicleState state, bool autoMotion = false, bool autoTurn = false, bool autoOrient = false);
+    void triggerAccelerationState(AccelerationState state, bool autoMotion = false);
     void triggerTurnState(TurnState state, bool autoTurn = false);
     void triggerOrientationState(Orientation state, bool autoOrient = false);
 
-    bool isBrakeDetectionEnabled() { return _autoBrake; }
+    bool isMotionDetectionEnabled() { return _autoMotion; }
     bool isTurnDetectionEnabled() { return _autoTurn; }
     bool isOrientationDetectionEnabled() { return _autoOrientation; }
 

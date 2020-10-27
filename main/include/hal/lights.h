@@ -135,7 +135,8 @@ class Lights : public LifecycleBase,
 
     void applyEffect(LightingParameters parameters);
 
-    static std::map<LightCommand, std::string> headlightActions;
-    static std::map<LightCommand, std::string> brakeActions;
-    static std::map<LightCommand, std::string> turnActions;
+    static std::map<Actions, std::string> headlightActions;
+    static std::map<Actions, std::string> motionActions;
+    static std::map<Actions, std::string> turnActions;
+    static std::map<Actions, std::string> orientationActions;
 };

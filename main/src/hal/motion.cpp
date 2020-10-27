@@ -44,8 +44,8 @@ void Motion::sampleTask(void *parameters) {
         if (motion->_autoOrientation)
           motion->detectOrientation();
 
-        if (motion->_autoBrake)
-          motion->detectBraking();
+        if (motion->_autoMotion)
+          motion->detectMotion();
 
         if (motion->_autoTurn)
           motion->detectTurning();
@@ -334,7 +334,7 @@ void Motion::onConfigUpdated() {
   else
     _enabled = true;
 
-  setBrakeDetection(motion.autoMotion, motion.brakeAxis, motion.brakeThreshold);
+  setMotionDetection(motion.autoMotion, motion.motionAxis, motion.brakeThreshold, motion.accelerationThreshold);
   setTurnDetection(motion.autoTurn, motion.relativeTurnZero, motion.turnAxis, motion.turnThreshold);
   setOrientationDetection(motion.autoOrientation, motion.orientationTrigger);
 
@@ -371,14 +371,15 @@ void Motion::notifyMotionListeners() {
   }
 }
 
-void Motion::setBrakeDetection(bool enabled, AccelerationAxis axis, float threshold) {
-  _autoBrake = enabled;
-  _brakeAxis = axis;
-  _brakeThreshold = threshold;
+void Motion::setMotionDetection(bool enabled, AccelerationAxis axis, float brakeTreshold, float accelerationTreshold) {
+  _autoMotion = enabled;
+  _motionAxis = axis;
+  _brakeThreshold = brakeTreshold;
+  _accelerationThreshold = accelerationTreshold;
 
-  if (_autoBrake || _autoTurn || _autoOrientation)
+  if (_autoMotion || _autoTurn || _autoOrientation)
     _enabled = true;
-  else if (!_autoBrake && !_autoTurn && !_autoOrientation)
+  else if (!_autoMotion && !_autoTurn && !_autoOrientation)
     _enabled = false;
 }
 
@@ -388,9 +389,9 @@ void Motion::setTurnDetection(bool enabled, bool useRelativeTurnZero, AttitudeAx
   _turnAxis = axis;
   _turnThreshold = threshold;
 
-  if (_autoBrake || _autoTurn || _autoOrientation)
+  if (_autoMotion || _autoTurn || _autoOrientation)
     _enabled = true;
-  else if (!_autoBrake && !_autoTurn && !_autoOrientation)
+  else if (!_autoMotion && !_autoTurn && !_autoOrientation)
     _enabled = false;
 }
 
@@ -398,14 +399,14 @@ void Motion::setOrientationDetection(bool enabled, Orientation trigger) {
   _autoOrientation = enabled;
   _orientationTrigger = trigger;
 
-  if (_autoBrake || _autoTurn || _autoOrientation)
+  if (_autoMotion || _autoTurn || _autoOrientation)
     _enabled = true;
-  else if (!_autoBrake && !_autoTurn && !_autoOrientation)
+  else if (!_autoMotion && !_autoTurn && !_autoOrientation)
     _enabled = false;
 }
 
-void Motion::triggerVehicleState(VehicleState state, bool autoBrake, bool autoTurn, bool autoOrient) {
-  _autoBrake = autoBrake;
+void Motion::triggerVehicleState(VehicleState state, bool autoMotion, bool autoTurn, bool autoOrient) {
+  _autoMotion = autoMotion;
   _autoTurn = autoTurn;
   _autoOrientation = autoOrient;
 
@@ -414,40 +415,51 @@ void Motion::triggerVehicleState(VehicleState state, bool autoBrake, bool autoTu
   notifyMotionListeners();
 }
 
-void Motion::triggerAccelerationState(AccelerationState state, bool autoBrake) {
+void Motion::triggerAccelerationState(AccelerationState state, bool autoMotion) {
   _vehicleState.acceleration = state;
-  triggerVehicleState(_vehicleState, autoBrake, _autoTurn, _autoOrientation);
+  triggerVehicleState(_vehicleState, autoMotion, _autoTurn, _autoOrientation);
 }
 
 void Motion::triggerTurnState(TurnState state, bool autoTurn) {
   _vehicleState.turn = state;
-  triggerVehicleState(_vehicleState, _autoBrake, autoTurn, _autoOrientation);
+  triggerVehicleState(_vehicleState, _autoMotion, autoTurn, _autoOrientation);
 }
 
 void Motion::triggerOrientationState(Orientation state, bool autoOrientation) {
   _vehicleState.orientation = state;
-  triggerVehicleState(_vehicleState, _autoBrake, _autoTurn, autoOrientation);
+  triggerVehicleState(_vehicleState, _autoMotion, _autoTurn, autoOrientation);
 }
 
-bool Motion::detectBraking() {
+bool Motion::detectMotion() {
   AccelerationState newAcceleration;
   unsigned long now = millis();
-  auto debounce = _vehicleState.acceleration == AccelerationState::Braking ? BRAKE_ACTIVE_DEBOUNCE : BRAKE_DEBOUNCE;
-  if (now - _lastBrakeUpdate > debounce) {
-    float acceleration = getAccelerationFromAxis(_brakeAxis);
+  auto debounce = _vehicleState.acceleration == AccelerationState::Braking ? MOTION_ACTIVE_DEBOUNCE : MOTION_DEBOUNCE;
+  if (now - _lastMotionUpdate > debounce) {
+    float acceleration = getAccelerationFromAxis(_motionAxis);
 
     switch (_vehicleState.acceleration) {
       case Braking:
-        if (acceleration <= _brakeThreshold)
+        if (acceleration <= -_accelerationThreshold)
+          newAcceleration = AccelerationState::Accelerating;
+        else if (acceleration <= _brakeThreshold)
           newAcceleration = AccelerationState::Neutral;
         break;
+      case Accelerating:
+        if (acceleration >= _brakeThreshold)
+          newAcceleration = AccelerationState::Braking;
+        else if (acceleration >= -_accelerationThreshold)
+          newAcceleration = AccelerationState::Neutral;
       default:
         if (acceleration > _brakeThreshold)
           newAcceleration = AccelerationState::Braking;
+        else if (acceleration < -_accelerationThreshold)
+          newAcceleration = AccelerationState::Accelerating;
     }
 
     if (acceleration >= _brakeThreshold)
       newAcceleration = AccelerationState::Braking;
+    else if (acceleration <= -_accelerationThreshold)
+      newAcceleration = AccelerationState::Accelerating;
     else
       newAcceleration = AccelerationState::Neutral;
 
@@ -455,7 +467,7 @@ bool Motion::detectBraking() {
 
     if (newAcceleration != _vehicleState.acceleration) {
       triggerAccelerationState(newAcceleration, true);
-      _lastBrakeUpdate = millis();
+      _lastMotionUpdate = millis();
       return true;
     }
   }

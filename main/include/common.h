@@ -69,6 +69,7 @@ static const Color updateError(127, 0, 0);
 
 #define DEFAULT_TURN_THRESHOLD 7.0      // degrees
 #define DEFAULT_BRAKE_THRESHOLD 0.2     // g
+#define DEFAULT_ACCELERATION_THRESHOLD 0.2     // g
 
 #define DEFAULT_ORIENTATION_UP_MIN 70   // degrees
 #define DEFAULT_ORIENTATION_UP_MAX 110  // degrees
