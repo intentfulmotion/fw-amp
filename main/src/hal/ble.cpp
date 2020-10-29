@@ -35,7 +35,6 @@ void BluetoothLE::startServer(void *params) {
 
   NimBLEDevice::init("");
   NimBLEDevice::setSecurityAuth(false, true, true);
-  NimBLEDevice::setSecurityCallbacks(ble);
   NimBLEDevice::setSecurityInitKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   NimBLEDevice::setSecurityRespKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   NimBLEDevice::setMTU(512);
@@ -58,8 +57,6 @@ NimBLEService* BluetoothLE::createService(std::string uuid) {
 
 void BluetoothLE::onAuthenticationComplete(ble_gap_conn_desc *conn) {
   ESP_LOGD(BLE_TAG, "Authentication Complete - bonded: %s authenticated: %s", conn->sec_state.bonded ? "yes" : "no", conn->sec_state.authenticated ? "yes" : "no");
-  if (!conn->sec_state.bonded)
-    server->disconnect(conn->conn_handle);
 }
 
 void BluetoothLE::startAdvertising() {
