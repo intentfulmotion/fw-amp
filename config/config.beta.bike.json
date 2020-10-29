@@ -3,7 +3,7 @@
 		"autoOrientation": false,
 		"autoMotion": true,
 		"autoTurn": false,
-		"brakeAxis": 5,
+		"motionAxis": 5,
 		"brakeThreshold": 0.1,
 		"accelerationThreshold": 0.1,
 		"orientationTrigger": 2
