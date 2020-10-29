@@ -5,6 +5,7 @@
 		"autoTurn": false,
 		"brakeAxis": 5,
 		"brakeThreshold": 0.1,
+		"accelerationThreshold": 0.1,
 		"orientationTrigger": 2
 	},
 	"actions": {
