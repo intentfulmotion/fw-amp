@@ -19,8 +19,10 @@ void VehicleService::setupService() {
   _controlCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(vehicleControlCharacteristicUUID),
     NIMBLE_PROPERTY::READ |
+    NIMBLE_PROPERTY::READ_ENC |
     NIMBLE_PROPERTY::WRITE |
     NIMBLE_PROPERTY::WRITE_NR |
+    NIMBLE_PROPERTY::WRITE_ENC |
     NIMBLE_PROPERTY::NOTIFY);
   
   _controlCharacteristic->setCallbacks(this);
@@ -40,17 +42,21 @@ void VehicleService::setupService() {
   _lightCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(vehicleLightsCharacteristicUUID),
     NIMBLE_PROPERTY::READ | 
+    NIMBLE_PROPERTY::READ_ENC |
     NIMBLE_PROPERTY::WRITE |
     NIMBLE_PROPERTY::WRITE_NR |
+    NIMBLE_PROPERTY::WRITE_ENC |
     NIMBLE_PROPERTY::NOTIFY);
 
   _lightCharacteristic->setCallbacks(this);
 
   _calibrationCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(vehicleCalibrationCharacteristicUUID),
-    NIMBLE_PROPERTY::READ |
+    NIMBLE_PROPERTY::READ | 
+    NIMBLE_PROPERTY::READ_ENC |
     NIMBLE_PROPERTY::WRITE |
     NIMBLE_PROPERTY::WRITE_NR |
+    NIMBLE_PROPERTY::WRITE_ENC |
     NIMBLE_PROPERTY::NOTIFY);
 
   _calibrationCharacteristic->setCallbacks(this);
@@ -58,7 +64,8 @@ void VehicleService::setupService() {
   _restartCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(vehicleRestartCharactersticUUID),
     NIMBLE_PROPERTY::WRITE | 
-    NIMBLE_PROPERTY::WRITE_NR);
+    NIMBLE_PROPERTY::WRITE_NR |
+    NIMBLE_PROPERTY::WRITE_ENC);
   
   _restartCharacteristic->setCallbacks(this);
 

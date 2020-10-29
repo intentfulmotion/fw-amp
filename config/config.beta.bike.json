@@ -8,7 +8,7 @@
 		"orientationTrigger": 2
 	},
 	"actions": {
-		"brake-off": [
+		"motion-off": [
 			{ "region": "brake", "effect": "1" }
 		],
 		"motion-neutral": [

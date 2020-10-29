@@ -13,19 +13,23 @@ void ConfigService::setupService() {
   _configRxCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(configRxCharacteristicUUID),
     NIMBLE_PROPERTY::WRITE | 
-    NIMBLE_PROPERTY::WRITE_NR);
+    NIMBLE_PROPERTY::WRITE_NR |
+    NIMBLE_PROPERTY::WRITE_ENC);
   
   _configRxCharacteristic->setCallbacks(this);
 
   _configTxCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(configTxCharacteristicUUID),
     NIMBLE_PROPERTY::READ |
+    NIMBLE_PROPERTY::READ_ENC |
     NIMBLE_PROPERTY::NOTIFY);
 
   _configStatusCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(configStatusCharacteristicUUID),
     NIMBLE_PROPERTY::WRITE |
+    NIMBLE_PROPERTY::WRITE_ENC |
     NIMBLE_PROPERTY::READ |
+    NIMBLE_PROPERTY::READ_ENC |
     NIMBLE_PROPERTY::NOTIFY
   );
 

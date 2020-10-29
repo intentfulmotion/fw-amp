@@ -17,7 +17,8 @@ void UpdateService::setupService() {
   _updateControlCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(updateControlCharacteristicUUID),
     NIMBLE_PROPERTY::WRITE | 
-    NIMBLE_PROPERTY::WRITE_NR
+    NIMBLE_PROPERTY::WRITE_NR |
+    NIMBLE_PROPERTY::WRITE_ENC
   );
 
   _updateControlCharacteristic->setCallbacks(this);
@@ -25,14 +26,16 @@ void UpdateService::setupService() {
   _updateRxCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(updateRxCharacteristicUUID),
     NIMBLE_PROPERTY::WRITE | 
-    NIMBLE_PROPERTY::WRITE_NR
+    NIMBLE_PROPERTY::WRITE_NR |
+    NIMBLE_PROPERTY::WRITE_ENC
   );
 
   _updateRxCharacteristic->setCallbacks(this);
 
   _updateStatusCharacteristic = service->createCharacteristic(
     NimBLEUUID::fromString(updateStatusCharacteristicUUID),
-    NIMBLE_PROPERTY::READ | 
+    NIMBLE_PROPERTY::READ |
+    NIMBLE_PROPERTY::READ_ENC |
     NIMBLE_PROPERTY::NOTIFY
   );
 
