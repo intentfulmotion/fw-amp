@@ -1,0 +1,88 @@
+{
+	"battery": {
+		"voltageBreakpoints": [
+			62.7, 61.65, 61.35, 61.05, 60.6, 59.7, 58.2, 56.85, 56.25, 55.5, 54.9, 54.15, 53.1, 52.5, 51.9, 50.55, 48.75, 46.95, 43.5
+		]
+	},
+	"motion": {
+		"autoOrientation": false,
+		"autoMotion": true,
+		"autoTurn": false,
+		"autoDirection": true,
+		"motionAxis": 5,
+		"brakeThreshold": 0.1,
+		"accelerationThreshold": 0.1,
+		"orientationTrigger": 2,
+		"directionTrigger": 1,
+		"directionAxis": 3,
+		"directionThreshold": 0.5
+	},
+	"actions": {
+		"motion-off": [
+			{ "region": "battery", "effect": "1" }
+		],
+		"motion-neutral": [
+			{ "region": "battery", "effect": "2,#800000,1" }
+		],
+		"motion-acceleration": [
+			{ "region": "battery", "effect": "2,#800000,1" }
+		],
+		"motion-brakes": [
+			{ "region": "battery", "effect": "3,#800000,#FF0000,100,1" }
+		],
+		"motion-neutral-backward": [
+			{ "region": "controller", "effect": "2,#800000,1" }
+		],
+		"motion-acceleration-backward": [
+			{ "region": "controller", "effect": "2,#800000,1" }
+		],
+		"motion-brakes-backward": [
+			{ "region": "controller", "effect": "3,#800000,#FF0000,100,1" }
+		],
+		"headlight-off": [
+			{ "region": "controller", "effect": "1" }
+		],
+		"headlight-normal": [
+			{ "region": "controller", "effect": "2,#7F7F7F,1" }
+		],
+		"headlight-bright": [
+			{ "region": "controller", "effect": "2,#FFFFFF,1" }
+		],
+		"headlight-normal-backward": [
+			{ "region": "battery", "effect": "2,#7F7F7F,1" }
+		],
+		"headlight-bright-backward": [
+			{ "region": "battery", "effect": "2,#FFFFFF,1" }
+		]
+	},
+	"lights": {
+		"channels": [
+			{
+				"channel": 1,
+				"leds": 13,
+				"type": 3
+			},
+			{
+				"channel": 2,
+				"leds": 13,
+				"type": 3
+			}
+		],
+		"regions": {
+			"controller": [
+        {
+          "channel": 1,
+          "start": 1,
+          "end": 13
+        }
+			],
+			"battery": [
+        {
+					"channel": 2,
+					"start": 1,
+					"end": 13
+				}
+			]
+		}
+	}
+}

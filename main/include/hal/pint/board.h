@@ -1,9 +1,15 @@
+#pragma once
+
+#include "driver/gpio.h"
+#include "driver/can.h"
+#include "models/vesc-status.h"
+
 // Status LED
 #define STATUS_LED          13
-#define STATUS_ENABLED      true
+#define STATUS_ENABLED      false
 
 // I/O Channels
-#define STRIP_ONE_DATA      22
+#define STRIP_ONE_DATA      32
 #define STRIP_ONE_CLK       21
 #define STRIP_TWO_DATA      33
 #define STRIP_TWO_CLK       25
@@ -21,13 +27,17 @@
 #define BAT_CHRG            GPIO_NUM_34
 #define BAT_DONE            GPIO_NUM_35
 
-// IMU
-#define IMU_CLK             GPIO_NUM_18
-#define IMU_MISO            GPIO_NUM_19
-#define IMU_MOSI            GPIO_NUM_23
-#define IMU_CS              GPIO_NUM_5
+// CAN BUS
+#define CAN_TX              GPIO_NUM_23
+#define CAN_RX              GPIO_NUM_22
+#define VESC_ID             1
+#define AMP_ID              2
+#define BLE_PROXY_ID        3
 
 #define BLE_ENABLED
-#define HAS_BUTTON
-#define HAS_INTERNAL_IMU
-#define MANAGES_INTERNAL_POWER
+#define HAS_VESC_CAN
+
+class Board {
+  public:
+    void setupBoard();
+};

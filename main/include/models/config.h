@@ -1,9 +1,11 @@
 #pragma once
+#include <common.h>
 #include <string>
 #include <map>
 #include <vector>
 #include <models/light.h>
 #include <models/motion.h>
+#include <models/battery.h>
 
 struct DeviceInfo {
   std::string manufacturer = "Intentful Motion, Inc.";
@@ -16,6 +18,7 @@ struct DeviceInfo {
 struct AmpConfig {
   MotionConfig motion;
   LightsConfig lights;
+  BatteryConfig battery;
   std::map<std::string, std::vector<LightingParameters>*> actions;
   DeviceInfo info;
 };

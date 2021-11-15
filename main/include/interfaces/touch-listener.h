@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <FreeRTOS.h>
 #include <models/touch-type.h>
 
 class TouchListener {

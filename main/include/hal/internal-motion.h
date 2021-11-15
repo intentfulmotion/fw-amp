@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAS_INTERNAL_IMU
+
 // #define LOG_MOTION_RAW_ACCELERATION
 // #define LOG_MOTION_RAW_GYRO
 // #define LOG_MOTION_GRAVITY
@@ -15,14 +17,15 @@
 #include <interfaces/power-listener.h>
 #include <interfaces/config-listener.h>
 #include <interfaces/motion-listener.h>
+#include <interfaces/motion-provider.h>
 #include <interfaces/calibration-listener.h>
 #include <models/motion.h>
 #include <models/control.h>
 #include "FreeRTOS.h"
+#include <hal/common/amp-storage.h>
 
 #if defined(AMP_1_0_x)
   #include <hal/amp-1.0.0/amp-imu.h>
-  #include <hal/amp-1.0.0/amp-storage.h>
 #endif
 
 #include <hal/power.h>
@@ -34,10 +37,7 @@
   #include <filters/simple-ahrs.h>
 #endif
 
-static const char* MOTION_TAG = "motion";
-
-class Motion : public LifecycleBase, public PowerListener, public ConfigListener {
-  std::vector<MotionListener*> motionListeners;
+class Motion : public LifecycleBase, public PowerListener, public ConfigListener, public MotionProvider {
   std::vector<CalibrationListener*> calibrationListeners;
 
   Vector3D rawAccel, rawGyro, rawMag;
@@ -57,21 +57,8 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
   float _alpha = 0.5f;
   float expFilterWeight = 0.2f;
 
-  // turn center
-  float _turnZero = 0.0f;
-
   // calibrations
   bool _calibrating = false;
-
-  VehicleState _vehicleState;
-
-  AccelerationAxis _motionAxis;
-  AttitudeAxis _turnAxis;
-  Orientation _orientationTrigger;
-
-  bool _autoMotion, _autoTurn, _autoOrientation, _useRelativeTurnZero;
-  float _brakeThreshold, _accelerationThreshold, _turnThreshold, _turnCenter;
-  bool _enabled = false;
 
   unsigned long _lastUpdate = micros();
   unsigned long _lastSample = micros();
@@ -95,6 +82,7 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
   void calibrateMag();
 
   public:
+    static Motion* instance() { static Motion motion; return &motion; }
     static QueueHandle_t calibrationRequestQueue;
     static FreeRTOS::Semaphore holdInterface;
     Motion();
@@ -150,3 +138,5 @@ class Motion : public LifecycleBase, public PowerListener, public ConfigListener
 
     static void sampleTask(void *parameters);
 };
+
+#endif

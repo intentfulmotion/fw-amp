@@ -7,12 +7,10 @@
 #include <constants.h>
 #include "FreeRTOS.h"
 
-#if defined(AMP_1_0_x)
-  #include <hal/amp-1.0.0/amp-storage.h>
-  #include <NimBLEDevice.h>
-  #include <NimBLEServer.h>
-  #include "services/gap/ble_svc_gap.h"
-#endif
+#include <hal/common/amp-storage.h>
+#include <NimBLEDevice.h>
+#include <NimBLEServer.h>
+#include "services/gap/ble_svc_gap.h"
 
 #define PUBLIC_ADVERTISEMENT_MS   15000
 

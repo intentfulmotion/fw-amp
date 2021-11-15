@@ -1,4 +1,5 @@
 #pragma once
+#ifdef HAS_INPUT_BUTTON
 #include <common.h>
 #include <models/touch-type.h>
 #include <interfaces/lifecycle.h>
@@ -9,7 +10,6 @@
 #endif
 
 #include <hal/power.h>
-
 #include <memory>
 
 static const char* BUTTONS_TAG = "buttons";
@@ -36,3 +36,4 @@ class Buttons : public LifecycleBase, public TouchTaskListener {
 
     static void inputTask(void* params);
 };
+#endif

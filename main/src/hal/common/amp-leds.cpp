@@ -1,4 +1,4 @@
-#include <hal/amp-1.0.0/amp-leds.h>
+#include <hal/common/amp-leds.h>
 
 FreeRTOS::Semaphore AmpLeds::ledsReady = FreeRTOS::Semaphore("leds");
 

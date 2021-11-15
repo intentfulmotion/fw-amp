@@ -1,8 +1,8 @@
 #pragma once
-#include "FreeRTOS.h"
-
-#include <vector>
 #include <common.h>
+
+#ifdef MANAGES_INTERNAL_POWER
+#include "FreeRTOS.h"
 #include <interfaces/lifecycle.h>
 #include <interfaces/power-listener.h>
 #include <interfaces/touch-listener.h>
@@ -15,18 +15,9 @@
   #include <hal/amp-1.0.0/amp-power.h>
 #endif
 
-static const char* POWER_TAG = "power";
-
-class Power : public LifecycleBase, public TouchListener {
-  std::vector<PowerListener*> powerLevelListeners;
-  std::vector<LifecycleBase*> lifecycleListeners;
+class Power : public PowerProvider, public TouchListener {
   std::vector<TouchType> touches;
-  PowerStatus status;
   AmpPower ampPower;
-  bool restartNext = false;
-
-  void notifyPowerListeners();
-  PowerStatus calculatePowerStatus(bool batteryPresent, bool charging, bool done, uint8_t batteryLevel);
 
   public:
     Power();
@@ -43,3 +34,4 @@ class Power : public LifecycleBase, public TouchListener {
 
     static FreeRTOS::Semaphore powerDown;
 };
+#endif

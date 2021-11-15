@@ -1,4 +1,4 @@
-#include <hal/amp-1.0.0/amp-storage.h>
+#include <hal/common/amp-storage.h>
 
 const char* AmpStorage::storage = "amp";
 

@@ -13,10 +13,7 @@
 #include <models/config.h>
 #include <interfaces/config-listener.h>
 #include <interfaces/lifecycle.h>
-
-#if defined(AMP_1_0_x)
-  #include <hal/amp-1.0.0/amp-storage.h>
-#endif
+#include <hal/common/amp-storage.h>
 
 static const char* CONFIG_TAG = "config";
 
@@ -49,8 +46,11 @@ class Config : public LifecycleBase {
   bool _valid = false;
   bool _isUserConfig = false;
 
-  std::string configPath = "/spiffs/config.mp";
-  std::string userConfigPath = "/spiffs/config.user.mp";
+  const std::string configPath = "/spiffs/config.mp";
+  const std::string userConfigPath = "/spiffs/config.user.mp";
+  const std::string forwardSuffix = "-forward";
+  const std::string backwardSuffix = "-backward";
+  size_t forwardSuffixLength, backwardSuffixLength;
 
   JsonObject serializeEffects();
   static bool parseEffect(std::string data, LightingParameters *params);
@@ -61,6 +61,7 @@ class Config : public LifecycleBase {
   bool loadConfigFile(std::string path);
 
   public:
+    Config() { forwardSuffixLength = forwardSuffix.length(); backwardSuffixLength = backwardSuffix.length(); }
     static AmpConfig ampConfig;
     void onPowerUp();
     void onPowerDown();
@@ -76,6 +77,7 @@ class Config : public LifecycleBase {
     void loadActionConfig(JsonObject actionJson);
     void loadMotionConfig(JsonObject motionJson);
     void loadLightsConfig(JsonObject lightsJson);
+    void loadBatteryConfig(JsonObject batteryJson);
     std::string readFile(std::string filename);
     void addConfigListener(ConfigListener *listener);
     void notifyConfigListeners();

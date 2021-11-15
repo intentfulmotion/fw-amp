@@ -17,3 +17,7 @@ extern std::string updateServiceUUID;
 extern std::string updateControlCharacteristicUUID;
 extern std::string updateRxCharacteristicUUID;
 extern std::string updateStatusCharacteristicUUID;
+
+extern std::string vescServiceUUID;
+extern std::string vescRxCharacteristicUUID;
+extern std::string vescTxCharacteristicUUID;

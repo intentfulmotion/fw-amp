@@ -26,7 +26,6 @@ void BluetoothLE::process() {
     notifyListeners(false);
     // updateAdvertising(AmpStorage::getDeviceName(), false);
     // advertising->stop();
-    NimBLEDevice::setSecurityAuth(false, true, true);
   }
 }
 
@@ -34,9 +33,9 @@ void BluetoothLE::startServer(void *params) {
   auto ble = BluetoothLE::instance();
 
   NimBLEDevice::init("");
-  NimBLEDevice::setSecurityAuth(false, true, true);
-  NimBLEDevice::setSecurityInitKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
-  NimBLEDevice::setSecurityRespKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+  // NimBLEDevice::setSecurityAuth(false, true, true);
+  // NimBLEDevice::setSecurityInitKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+  // NimBLEDevice::setSecurityRespKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   NimBLEDevice::setMTU(512);
 
   ble->server = NimBLEDevice::createServer();
@@ -63,7 +62,8 @@ void BluetoothLE::startAdvertising() {
   // configure advertising
   // generic outdoor sports activity
   advertising->setAppearance(5184);
-  advertising->addServiceUUID(NimBLEUUID::fromString(vehicleServiceUUID));
+  // advertising->addServiceUUID(NimBLEUUID::fromString(vehicleServiceUUID));
+  // advertising->addServiceUUID(NimBLEUUID::fromString(vescServiceUUID));
   advertising->setScanResponse(true);
   // advertising->setScanFilter(true, true);
   advertising->start();
@@ -76,7 +76,8 @@ void BluetoothLE::updateAdvertising(std::string name, bool publicAdvertise) {
 
   ESP_LOGD(BLE_TAG,"Updating advertising - name: %s, %s", name.c_str(), publicAdvertise ? "public" : "private");
   NimBLEAdvertisementData data;
-  data.setCompleteServices(NimBLEUUID::fromString(vehicleServiceUUID));
+  // data.setCompleteServices(NimBLEUUID::fromString(vehicleServiceUUID));
+  data.setCompleteServices(NimBLEUUID::fromString(vescServiceUUID));
   data.setFlags(BLE_HS_ADV_F_DISC_GEN);
   advertising->setAdvertisementData(data);
   data.setName(name);
@@ -92,25 +93,25 @@ void BluetoothLE::onConnect(NimBLEServer *server, ble_gap_conn_desc *desc) {
   auto addr = desc->peer_id_addr.val;
   ESP_LOGD(BLE_TAG, "Connected to device %02X:%02X:%02X:%02X:%02X:%02X - bonded: %s", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], desc->sec_state.bonded ? "yes" : "no");
 
-  if (!publicAdvertising) {
-    ble_addr_t bonded[MYNEWT_VAL(BLE_STORE_MAX_BONDS)];
-    int numPeers;
-    ble_store_util_bonded_peers(&bonded[0], &numPeers, MYNEWT_VAL(BLE_STORE_MAX_BONDS));
+  // if (!publicAdvertising) {
+  //   ble_addr_t bonded[MYNEWT_VAL(BLE_STORE_MAX_BONDS)];
+  //   int numPeers;
+  //   ble_store_util_bonded_peers(&bonded[0], &numPeers, MYNEWT_VAL(BLE_STORE_MAX_BONDS));
 
-    bool found = false;
-    for (int i = 0; i < numPeers; i++) {
-      if (ble_addr_cmp(&desc->peer_id_addr, &bonded[i]) == 0) {
-        found = true;
-        break;
-      }
-    }
+  //   bool found = false;
+  //   for (int i = 0; i < numPeers; i++) {
+  //     if (ble_addr_cmp(&desc->peer_id_addr, &bonded[i]) == 0) {
+  //       found = true;
+  //       break;
+  //     }
+  //   }
 
-    if (!found) {
-      auto addr = desc->peer_id_addr.val;
-      ESP_LOGD(BLE_TAG, "Not bonded to device %02X:%02X:%02X:%02X:%02X:%02X - disconnecting", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
-      server->disconnect(desc->conn_handle);
-    }
-  }
+  //   if (!found) {
+  //     auto addr = desc->peer_id_addr.val;
+  //     ESP_LOGD(BLE_TAG, "Not bonded to device %02X:%02X:%02X:%02X:%02X:%02X - disconnecting", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+  //     server->disconnect(desc->conn_handle);
+  //   }
+  // }
 
   advertising->start();
 }
@@ -123,7 +124,7 @@ void BluetoothLE::onTouchEvent(std::vector<TouchType> *touches) {
   if (touches->size() == 3) {
     notifyListeners(true);
     updateAdvertising(AmpStorage::getDeviceName(), true);
-    NimBLEDevice::setSecurityAuth(true, true, true);
+    // NimBLEDevice::setSecurityAuth(true, true, true);
   }
 }
 

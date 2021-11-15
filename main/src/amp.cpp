@@ -1,12 +1,28 @@
 #include <amp.h>
 #include <app.h>
 
-Power* Amp::power = Power::instance();
+
 Lights* Amp::lights = Lights::instance();
 Updater* Amp::updater = Updater::instance();
-Motion Amp::motion;
-Buttons Amp::buttons;
 Config Amp::config;
+
+#ifdef MANAGES_INTERNAL_POWER
+Power* Amp::power = Power::instance();
+#endif
+
+#ifdef HAS_INTERNAL_IMU
+MotionProvider* Amp::motion = Motion::instance();
+#endif
+
+#ifdef HAS_INPUT_BUTTON
+Buttons Amp::buttons;
+#endif
+
+#ifdef HAS_VESC_CAN
+VescCan* Amp::can = VescCan::instance();
+MotionProvider* Amp::motion = VescCan::instance();
+PowerProvider* Amp::power = VescCan::instance();
+#endif
 
 #ifdef BLE_ENABLED
 BluetoothLE* Amp::ble = BluetoothLE::instance();
@@ -14,12 +30,15 @@ BluetoothLE* Amp::ble = BluetoothLE::instance();
 
 void Amp::init() {
   // listen to power changes
-  power->addPowerLevelListener(&motion);
+  power->addPowerLevelListener(motion);
   power->addPowerLevelListener(lights);
 
   // listen to lifecycle changes
+#ifdef HAS_INPUT_BUTTON
   power->addLifecycleListener(&buttons);
-  power->addLifecycleListener(&motion);
+#endif
+
+  power->addLifecycleListener(motion);
   power->addLifecycleListener(lights);
 
 #ifdef BLE_ENABLED
@@ -29,17 +48,21 @@ void Amp::init() {
   power->addLifecycleListener(&config);
 
   // listen to config changes
-  config.addConfigListener(&motion);
+  config.addConfigListener(motion);
   config.addConfigListener(lights);
 
   // listen to touch changes
+#ifdef HAS_INPUT_BUTTON
   buttons.addTouchListener(lights);
   buttons.addTouchListener(power);
-
+  
 #ifdef BLE_ENABLED
   // listen to touches to start advertising
   buttons.addTouchListener(ble);
+#endif
+#endif
 
+#ifdef BLE_ENABLED
   // listen to advertising changes
   ble->addAdvertisingListener(lights);
 #endif
@@ -52,15 +75,16 @@ void Amp::init() {
   power->addLifecycleListener(app);
 
   // setup the board
-  power->onPowerUp();
+  power->startup();
 }
 
 void Amp::process() {
   // todo: move this into the app host
   // when we're powering down, we need to halt processing
-  Power::powerDown.wait("power");
-
+#ifdef MANAGES_INTERNAL_POWER
+  PowerProvider::powerDown.wait("power");
   power->process();
+#endif
 
   if (app != nullptr)
     app->process();

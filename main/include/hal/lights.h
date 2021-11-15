@@ -14,10 +14,8 @@
 #include <models/light.h>
 #include <functional>
 
-#if defined(AMP_1_0_x)
-  #include <hal/amp-1.0.0/amp-leds.h>
-  #include <hal/amp-1.0.0/amp-storage.h>
-#endif
+#include <hal/common/amp-leds.h>
+#include <hal/common/amp-storage.h>
 
 #include <hal/config.h>
 

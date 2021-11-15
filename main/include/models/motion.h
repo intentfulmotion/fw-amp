@@ -35,15 +35,22 @@ enum Orientation : uint8_t {
   BackSideUp
 };
 
+enum Direction : uint8_t {
+  Forward,
+  Backward
+};
+
 struct VehicleState {
   AccelerationState acceleration;
   TurnState turn;
   Orientation orientation;
+  Direction direction;
 
   VehicleState& operator=(VehicleState const &other) {
     std::memcpy(&acceleration, &other.acceleration, sizeof(AccelerationState));
     std::memcpy(&turn, &other.turn, sizeof(TurnState));
     std::memcpy(&orientation, &other.orientation, sizeof(Orientation));
+    std::memcpy(&direction, &other.direction, sizeof(Direction));
     return *this;
   }
 };
@@ -129,10 +136,16 @@ enum AttitudeAxis : uint8_t {
   Yaw_Invert
 };
 
+enum DirectionTrigger : uint8_t {
+  Acceleration,
+  Attitude
+};
+
 struct MotionConfig {
   bool autoOrientation;
   bool autoMotion;
   bool autoTurn;
+  bool autoDirection;
   bool relativeTurnZero;
   float turnZero;
   float turnThreshold;
@@ -141,4 +154,8 @@ struct MotionConfig {
   AccelerationAxis motionAxis;
   AttitudeAxis turnAxis;
   Orientation orientationTrigger;
+  DirectionTrigger directionTriggerType;
+  AttitudeAxis directionAttitudeAxis;
+  AccelerationAxis directionAccelerationAxis;
+  float directionThreshold;
 };

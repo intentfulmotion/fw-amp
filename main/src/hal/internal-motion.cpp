@@ -1,5 +1,6 @@
-#include <hal/motion.h>
+#include <hal/internal-motion.h>
 
+#ifdef HAS_INTERNAL_IMU
 QueueHandle_t Motion::calibrationRequestQueue = NULL;
 FreeRTOS::Semaphore Motion::holdInterface = FreeRTOS::Semaphore("spi");
 AmpIMU Motion::ampIMU;
@@ -329,7 +330,7 @@ void Motion::onConfigUpdated() {
   auto motion = Config::ampConfig.motion;
 
   // update motion detection
-  if (!motion.autoMotion && !motion.autoOrientation && !motion.autoTurn)
+  if (!motion.autoMotion && !motion.autoOrientation && !motion.autoTurn && !motion.autoDirection)
     _enabled = false;
   else
     _enabled = true;
@@ -337,72 +338,9 @@ void Motion::onConfigUpdated() {
   setMotionDetection(motion.autoMotion, motion.motionAxis, motion.brakeThreshold, motion.accelerationThreshold);
   setTurnDetection(motion.autoTurn, motion.relativeTurnZero, motion.turnAxis, motion.turnThreshold);
   setOrientationDetection(motion.autoOrientation, motion.orientationTrigger);
+  setDirectionDetection(motion.autoDirection, motion.direction)
 
   resetMotionDetection();
-}
-
-void Motion::addMotionListener(MotionListener *listener) {
-  motionListeners.push_back(listener);
-}
-
-void Motion::removeMotionListener(MotionListener *listener) {
-  motionListeners.erase(std::remove(motionListeners.begin(), motionListeners.end(), listener));
-}
-
-void Motion::resetMotionDetection() {
-  if (Config::ampConfig.motion.autoMotion)
-    _vehicleState.acceleration = AccelerationState::Neutral;
-
-  if (Config::ampConfig.motion.autoTurn)
-    _vehicleState.turn = TurnState::Center;
-
-  if (Config::ampConfig.motion.autoOrientation)
-    _vehicleState.orientation = Orientation::UnknownSideUp;
-
-  notifyMotionListeners();
-}
-
-void Motion::notifyMotionListeners() {
-  // notify any listeners of the reset
-  for (auto listener : motionListeners) {
-    // vehicle state changed
-    if (listener->vehicleQueue != NULL)
-      xQueueSend(listener->vehicleQueue, &_vehicleState, 0);
-  }
-}
-
-void Motion::setMotionDetection(bool enabled, AccelerationAxis axis, float brakeTreshold, float accelerationTreshold) {
-  _autoMotion = enabled;
-  _motionAxis = axis;
-  _brakeThreshold = brakeTreshold;
-  _accelerationThreshold = accelerationTreshold;
-
-  if (_autoMotion || _autoTurn || _autoOrientation)
-    _enabled = true;
-  else if (!_autoMotion && !_autoTurn && !_autoOrientation)
-    _enabled = false;
-}
-
-void Motion::setTurnDetection(bool enabled, bool useRelativeTurnZero, AttitudeAxis axis, float threshold) {
-  _autoTurn = enabled;
-  _useRelativeTurnZero = useRelativeTurnZero;
-  _turnAxis = axis;
-  _turnThreshold = threshold;
-
-  if (_autoMotion || _autoTurn || _autoOrientation)
-    _enabled = true;
-  else if (!_autoMotion && !_autoTurn && !_autoOrientation)
-    _enabled = false;
-}
-
-void Motion::setOrientationDetection(bool enabled, Orientation trigger) {
-  _autoOrientation = enabled;
-  _orientationTrigger = trigger;
-
-  if (_autoMotion || _autoTurn || _autoOrientation)
-    _enabled = true;
-  else if (!_autoMotion && !_autoTurn && !_autoOrientation)
-    _enabled = false;
 }
 
 void Motion::triggerVehicleState(VehicleState state, bool autoMotion, bool autoTurn, bool autoOrient) {
@@ -571,3 +509,4 @@ float Motion::getAttitudeFromAxis(AttitudeAxis axis) {
 
   return angle;
 }
+#endif HAS_INTERNAL_IMU

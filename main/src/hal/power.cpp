@@ -1,7 +1,6 @@
 #include <hal/power.h>
 
-FreeRTOS::Semaphore Power::powerDown = FreeRTOS::Semaphore("power");
-
+#ifdef MANAGES_INTERNAL_POWER
 Power::Power() {
   touchEventQueue = xQueueCreate(10, sizeof(std::vector<TouchType>));
 }
@@ -13,7 +12,7 @@ void Power::onPowerUp() {
     listener->onPowerUp();
 
   ampPower.process();
-  status = calculatePowerStatus(ampPower.batteryPresent, ampPower.charging, ampPower.done, ampPower.batteryLevel);
+  powerStatus = calculatePowerStatus(ampPower.batteryPresent, ampPower.charging, ampPower.done, ampPower.batteryLevel);
 
   notifyPowerListeners();
 }
@@ -39,26 +38,10 @@ void Power::process() {
   newStatus = calculatePowerStatus(ampPower.batteryPresent, ampPower.charging, ampPower.done, ampPower.batteryLevel);
 
   // if the power status has changed, notify our listeners
-  if (status != newStatus) {
-    status = newStatus;
+  if (powerStatus != newStatus) {
+    powerStatus = newStatus;
     notifyPowerListeners();
   }
-}
-
-void Power::addPowerLevelListener(PowerListener *listener) {
-  powerLevelListeners.push_back(listener);
-}
-
-void Power::addLifecycleListener(LifecycleBase *listener) {
-  lifecycleListeners.push_back(listener);
-}
-
-void Power::notifyPowerListeners() {
-  ESP_LOGV(POWER_TAG,"Power status notification: Charging: %s, Level: %d (%d %%), Battery Present: %s", status.charging ? "true" : "false", status.level, status.percentage, status.batteryPresent ? "true" : "false");
-
-  for(auto listener : powerLevelListeners)
-    if (listener->powerStatusQueue != NULL)
-      xQueueSend(listener->powerStatusQueue, &status, 0);
 }
 
 PowerStatus Power::calculatePowerStatus(bool batteryPresent, bool charging, bool done, uint8_t batteryLevel) {
@@ -101,3 +84,4 @@ void Power::shutdown(bool restart) {
 
   onPowerDown();
 }
+#endif

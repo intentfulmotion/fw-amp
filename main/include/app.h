@@ -12,6 +12,11 @@
   #include <services/vehicle-service.h>
   #include <services/config-service.h>
   #include <services/update-service.h>
+
+#ifdef HAS_VESC_CAN
+  #include <services/vesc-service.h>
+#endif
+
 #endif
 
 static const char* APP_TAG = "app";
@@ -36,6 +41,9 @@ class App : public LifecycleBase, public ConfigListener, public MotionListener, 
   VehicleService *vehicleService;
   ConfigService *configService;
   UpdateService *updateService;
+#ifdef HAS_VESC_CAN
+  VescService *vescService;
+#endif
 #endif
   
   public:
@@ -50,6 +58,7 @@ class App : public LifecycleBase, public ConfigListener, public MotionListener, 
     void onAccelerationStateChanged(AccelerationState state);
     void onTurnStateChanged(TurnState state);
     void onOrientationChanged(Orientation state);
+    void onDirectionChanged();
 
     void setHeadlight(Actions command);
     void setMotion(Actions command);

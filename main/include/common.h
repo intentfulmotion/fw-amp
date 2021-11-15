@@ -1,38 +1,18 @@
 #pragma once
 
-#define AMP_1_0_x
+// #define AMP_1_0_x
+#define AMP_PINT
 
-#define FIRMWARE_VERSION    "1.3.0"
-#define COPYRIGHT_YEAR      2020
+#define FIRMWARE_VERSION    "2.0.0"
+#define COPYRIGHT_YEAR      2021
 
-// Status LED
-#define STATUS_LED          13
+#ifdef AMP_1_0_x
+#include "hal/amp-1.0.0/board.h"
+#endif
 
-// I/O Channels
-#define STRIP_ONE_DATA      22
-#define STRIP_ONE_CLK       21
-#define STRIP_TWO_DATA      33
-#define STRIP_TWO_CLK       25
-#define STRIP_THREE_DATA    26
-#define STRIP_THREE_CLK     27
-#define STRIP_FOUR_DATA     14
-#define STRIP_FOUR_CLK      12
-
-// Input
-#define BUTTON_INPUT        GPIO_NUM_36
-
-// Power Management
-#define POWER_HOLD          GPIO_NUM_32
-#define VBAT_SENSE          GPIO_NUM_39
-#define BAT_CHRG            GPIO_NUM_34
-#define BAT_DONE            GPIO_NUM_35
-
-// IMU
-#define IMU_CLK             GPIO_NUM_18
-#define IMU_MISO            GPIO_NUM_19
-#define IMU_MOSI            GPIO_NUM_23
-#define IMU_CS              GPIO_NUM_5
-#define BLE_ENABLED
+#ifdef AMP_PINT
+#include "hal/pint/board.h"
+#endif
 
 #include "AddressableLED.h"
 #define Color Rgb
@@ -74,6 +54,10 @@ static const Color updateError(127, 0, 0);
 #define DEFAULT_ORIENTATION_UP_MIN 70   // degrees
 #define DEFAULT_ORIENTATION_UP_MAX 110  // degrees
 
+#define DEFAULT_EMPTY_BATTERY 3.0
+#define DEFAULT_LOW_BATTERY 3.1
+#define DEFAULT_FULL_BATTERY 4.2
+
 inline Color hexStringToColor(std::string fadeColorText) {
   size_t pos = fadeColorText.find_first_of('#');
   if (pos != std::string::npos)
@@ -99,6 +83,14 @@ inline std::string string_format( const std::string& format, Args ... args )
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
+inline bool hasEnding (std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
 inline unsigned long micros()
 {
   return (unsigned long) (esp_timer_get_time());
@@ -114,7 +106,8 @@ inline void delay(uint32_t ms) {
 }
 
 // power
-const float voltageBreakpoints[21] = {
+const int VOLTAGE_BREAKPOINTS = 21;
+const float DEFAULT_VOLTAGE_BREAKPOINTS[VOLTAGE_BREAKPOINTS] = {
   4.2,
   4.15,
   4.11,
@@ -138,10 +131,21 @@ const float voltageBreakpoints[21] = {
   3.27
 };
 
-inline uint8_t percentageFromReading(float reading) {
-  for (uint8_t i = 0; i < sizeof(voltageBreakpoints); i++)
-    if (reading >= voltageBreakpoints[i])
-      return 100 - (5 * i);
+inline uint8_t percentageFromReading(float reading, float voltageBreakpoints[]) {
+  float x0, y0, x1, y1, interpolated;
+  for (uint8_t i = 0; i < VOLTAGE_BREAKPOINTS; i++)
+    if (reading >= voltageBreakpoints[i]) {
+      if (i == 0)
+        return 100.0;
+      else {
+        x0 = voltageBreakpoints[i - 1];
+        y0 = 100 - (5 * (i - 1));
+        x1 = voltageBreakpoints[i];
+        y1 = 100 - (5 * i);
+        interpolated = y0 + ((y1 - y0) / (x1 - x0)) * (reading - x0);
+        return (int) interpolated;
+      }
+    }
   
   return 0;
 }

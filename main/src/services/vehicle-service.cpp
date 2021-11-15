@@ -1,13 +1,16 @@
 #include <services/vehicle-service.h>
 
-VehicleService::VehicleService(Motion *motion, Power *power, NimBLEServer *server, RenderHost *host) {
+VehicleService::VehicleService(MotionProvider *motion, PowerProvider *power, NimBLEServer *server, RenderHost *host) {
   _motion = motion;
   _server = server;
   _power = power;
   _renderHost = host;
   
+#ifdef HAS_INTERNAL_IMU
   calibrateXGQueue = xQueueCreate(2, sizeof(CalibrationState));
   calibrateMagQueue = xQueueCreate(2, sizeof(CalibrationState));
+#endif
+
   lightsChangedQueue = xQueueCreate(4, sizeof(LightCommands));
 
   setupService();
@@ -150,7 +153,9 @@ void VehicleService::onWrite(NimBLECharacteristic *characteristic) {
   else if (uuid.equals(_calibrationCharacteristic->getUUID())) {
     ESP_LOGD(VEHICLE_SERVICE_TAG,"vehicle calibration onwrite");
     if (len >= 1) {
+#ifdef HAS_INTERNAL_IMU
       xQueueSendToBack(_motion->calibrationRequestQueue, &data[0], 0);
+#endif
     }
   }
 }
@@ -167,6 +172,7 @@ void VehicleService::onVehicleStateChanged(VehicleState state) {
 }
 
 void VehicleService::process() {
+#ifdef HAS_INTERNAL_IMU
   if (uxQueueMessagesWaiting(calibrateXGQueue)) {
     CalibrationState state;
     xQueueReceive(calibrateXGQueue, &state, 0);
@@ -180,6 +186,7 @@ void VehicleService::process() {
 
     state == CalibrationState::Started ? onCalibrateMagStarted() : onCalibrateMagEnded();
   }
+#endif
 
   if (uxQueueMessagesWaiting(lightsChangedQueue)) {
     LightCommands commands;

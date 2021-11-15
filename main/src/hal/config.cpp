@@ -58,6 +58,8 @@ bool Config::loadConfigFile(std::string path) {
   if (!_filesystemError) {
     MsgPackFileReader reader(file);
     auto err = deserializeMsgPack(document, reader);
+    if (err != DeserializationError::Ok)
+      ESP_LOGE(CONFIG_TAG, "Deserialization error: %s", err.c_str());
     return err == DeserializationError::Ok;
   }
   else {
@@ -117,6 +119,9 @@ void Config::loadConfig() {
   JsonObject motionJson = configJson["motion"].as<JsonObject>();
   loadMotionConfig(motionJson);
 
+  JsonObject batteryJson = configJson["battery"].as<JsonObject>();
+  loadBatteryConfig(batteryJson);
+
   ESP_LOGD(CONFIG_TAG,"Loaded configuration");
 }
 
@@ -126,6 +131,7 @@ void Config::loadMotionConfig(JsonObject motionJson) {
   config.autoOrientation = motionJson["autoOrientation"] | false;
   config.autoMotion = motionJson["autoMotion"] | false;
   config.autoTurn = motionJson["autoTurn"] | false;
+  config.autoDirection = motionJson["autoDirection"] | false;
   config.relativeTurnZero = motionJson["relativeTurnZero"] | true;
 
   config.brakeThreshold = motionJson["brakeThreshold"] | DEFAULT_BRAKE_THRESHOLD;
@@ -141,12 +147,31 @@ void Config::loadMotionConfig(JsonObject motionJson) {
   uint8_t orientationTrigger = (Orientation)(motionJson["orientation"].as<uint8_t>()) | Orientation::UnknownSideUp;
   config.orientationTrigger = (Orientation)orientationTrigger;
 
+  uint8_t directionTrigger = (DirectionTrigger)(motionJson["directionTrigger"].as<uint8_t>()) | DirectionTrigger::Attitude;
+  config.directionTriggerType = (DirectionTrigger)directionTrigger;
+
+  uint8_t directionAxis = motionJson["directionAxis"].as<uint8_t>() | 0;
+  config.directionThreshold = motionJson["directionThreshold"] | 0;
+  
+  switch (config.directionTriggerType)
+  {
+    case DirectionTrigger::Acceleration:
+      config.directionAccelerationAxis = (AccelerationAxis)directionAxis;
+      break;
+    
+    case DirectionTrigger::Attitude:
+      config.directionAttitudeAxis = (AttitudeAxis)directionAxis;
+    default:
+      break;
+  }
+
   ESP_LOGV(CONFIG_TAG,"auto orientation config: %s", config.autoOrientation ? "true" : "false");
   ESP_LOGV(CONFIG_TAG,"auto motion config: %s", config.autoMotion ? "true" : "false");
   ESP_LOGV(CONFIG_TAG,"auto turn config: %s", config.autoTurn ? "true" : "false");
 
   ESP_LOGV(CONFIG_TAG,"motion axis: %d brake threshold: %.2f acceleration threshold: %.2f", config.motionAxis, config.brakeThreshold, config.accelerationThreshold);
   ESP_LOGV(CONFIG_TAG,"orientation trigger: %d", config.orientationTrigger);
+  ESP_LOGV(CONFIG_TAG, "direction type: %d, axis: %d, threshold: %.2f", config.directionTriggerType, directionAxis, config.directionThreshold);
 
   ampConfig.motion = config;
 }
@@ -234,6 +259,22 @@ void Config::loadActionConfig(JsonObject actionJson) {
   }
 }
 
+void Config::loadBatteryConfig(JsonObject batteryJson) {
+  BatteryConfig config;
+  if (batteryJson.containsKey("voltageBreakpoints")) {
+    auto breakpoints = batteryJson["voltageBreakpoints"].as<JsonArray>();
+    for (int i = 0; i < VOLTAGE_BREAKPOINTS; i++) {
+      config.voltageBreakpoints[i] = breakpoints.getElement(i).as<float>();
+    }
+  }
+  else
+    for (int i = 0; i < VOLTAGE_BREAKPOINTS; i++) {
+      config.voltageBreakpoints[i] = DEFAULT_VOLTAGE_BREAKPOINTS[i];
+    }
+
+  ampConfig.battery = config;
+}
+
 std::string Config::readFile(std::string filename) {
   if (!_filesystemError)
     return ampStorage.readFile(filename);
@@ -257,22 +298,31 @@ bool Config::addEffect(std::string action, std::string region, std::string data,
 
   bool found = false;
 
+  auto hasForwardSuffix = hasEnding(action, "-forward");
+  auto hasBackwardSuffix = hasEnding(action, "-backward");
+
+  std::string normalized = action;
+  if (hasForwardSuffix)
+    normalized.erase(normalized.length() - forwardSuffixLength, forwardSuffixLength);
+  if (hasBackwardSuffix)
+    normalized.erase(normalized.length() - backwardSuffixLength, backwardSuffixLength);
+
   for (auto const& [command, actionName] : Lights::headlightActions)
-    if (actionName.compare(action) == 0) {
+    if (actionName.compare(normalized) == 0) {
       found = true;
       break;
     }
 
   if (!found)
     for (auto const& [command, actionName] : Lights::turnActions)
-      if (actionName.compare(action) == 0) {
+      if (actionName.compare(normalized) == 0) {
         found = true;
         break;
       }
 
   if (!found)
     for (auto const& [command, actionName] : Lights::motionActions)
-      if (actionName.compare(action) == 0) {
+      if (actionName.compare(normalized) == 0) {
         found = true;
         break;
       }

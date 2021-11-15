@@ -1,4 +1,5 @@
 #include <hal/buttons.h>
+#ifdef HAS_INPUT_BUTTON
 
 void Buttons::onPowerUp() {
   ampButtons.init(this);
@@ -66,3 +67,5 @@ void Buttons::inputTask(void *parameters) {
     delay(10);
   }
 }
+
+#endif

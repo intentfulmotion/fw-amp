@@ -22,9 +22,13 @@ void App::onPowerUp() {
   // startup bluetooth services
   deviceInfoService = new DeviceInfoService(amp->ble->server);
   batteryService = new BatteryService(amp->ble->server);
-  vehicleService = new VehicleService(&(amp->motion), amp->power, amp->ble->server, this);
+  vehicleService = new VehicleService(amp->motion, amp->power, amp->ble->server, this);
   configService = new ConfigService(&(amp->config), amp->ble->server);
   updateService = new UpdateService(amp->updater, amp->ble->server);
+  
+#ifdef HAS_VESC_CAN
+  vescService = new VescService(amp->can, amp->ble->server);
+#endif
 
   // listen to power updates
   amp->power->addPowerLevelListener(batteryService);
@@ -37,7 +41,7 @@ void App::onPowerUp() {
 #endif
 
   // listen to motion changes
-  amp->motion.addMotionListener(this);
+  amp->motion->addMotionListener(this);
 }
 
 void App::onPowerDown() {
@@ -49,7 +53,7 @@ void App::onConfigUpdated() {
     config = &Config::ampConfig;  
 
   // reset motion detection
-  amp->motion.resetMotionDetection();
+  amp->motion->resetMotionDetection();
   setMotion(Actions::LightsReset);
   setTurnLights(Actions::LightsReset);
   setHeadlight(Actions::LightsReset);
@@ -79,6 +83,9 @@ void App::process() {
 
     if (vehicleState.orientation != state.orientation)
       onOrientationChanged(state.orientation);
+
+    if (vehicleState.direction != state.direction)
+      onDirectionChanged();
 
   #ifdef BLE_ENABLED
     if (vehicleService != nullptr)
@@ -172,16 +179,25 @@ void App::onOrientationChanged(Orientation state) {
   setOrientationLights(command);
 }
 
+void App::onDirectionChanged() {
+  setMotion(Actions::LightsReset);
+  setTurnLights(Actions::LightsReset);
+  setHeadlight(Actions::LightsReset);
+}
+
 void App::setHeadlight(Actions command) {
   auto actions = config->actions;
   if (command == Actions::LightsReset)
     command = _headlightCommand;
 
   std::string actionName = Lights::headlightActions[command];
-  ESP_LOGI(APP_TAG, "Setting headlight - Command: %d, Action name: %s", command, actionName.c_str());
+  std::string actionNameWithDirection = actionName + (vehicleState.direction == Direction::Forward ? "-forward" : "-backward");
+  bool useActionWithDirection = actions.find(actionNameWithDirection) != actions.end();
+  std::string actionToUse = useActionWithDirection ? actionNameWithDirection : actionName;
+  ESP_LOGI(APP_TAG, "Setting headlight - Command: %d, Action name: %s", command, actionToUse.c_str());
 
-  if (actions.find(actionName) != actions.end()) {
-    for (auto effect : *actions[actionName]) {
+  if (useActionWithDirection || actions.find(actionName) != actions.end()) {
+    for (auto effect : *actions[actionToUse]) {
       ESP_LOGD(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
       amp->lights->applyEffect(effect);
     }
@@ -199,10 +215,13 @@ void App::setMotion(Actions command) {
     command = _motionCommand;
 
   std::string actionName = Lights::motionActions[command];
-  ESP_LOGI(APP_TAG, "Setting motion - Command: %d, Action name: %s", command, actionName.c_str());
+  std::string actionNameWithDirection = actionName + (vehicleState.direction == Direction::Forward ? "-forward" : "-backward");
+  bool useActionWithDirection = actions.find(actionNameWithDirection) != actions.end();
+  std::string actionToUse = useActionWithDirection ? actionNameWithDirection : actionName;
+  ESP_LOGI(APP_TAG, "Setting motion - Command: %d, Action name: %s", command, actionToUse.c_str());
 
-  if (actions.find(actionName) != actions.end()) {
-    for (auto effect : *actions[actionName]) {
+  if (useActionWithDirection || actions.find(actionName) != actions.end()) {
+    for (auto effect : *actions[actionToUse]) {
       ESP_LOGD(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
       amp->lights->applyEffect(effect);
     }
@@ -220,10 +239,13 @@ void App::setTurnLights(Actions command) {
     command = _turnCommand;
 
   std::string actionName = Lights::turnActions[command];
-  ESP_LOGI(APP_TAG, "Setting indicators - Command: %d, Action name: %s", command, actionName.c_str());
+  std::string actionNameWithDirection = actionName + (vehicleState.direction == Direction::Forward ? "-forward" : "-backward");
+  bool useActionWithDirection = actions.find(actionNameWithDirection) != actions.end();
+  std::string actionToUse = useActionWithDirection ? actionNameWithDirection : actionName;
+  ESP_LOGI(APP_TAG, "Setting indicators - Command: %d, Action name: %s", command, actionToUse.c_str());
   
-  if (actions.find(actionName) != actions.end()) {
-    for (auto effect : *actions[actionName]) {
+  if (useActionWithDirection || actions.find(actionName) != actions.end()) {
+    for (auto effect : *actions[actionToUse]) {
       ESP_LOGD(APP_TAG, "Applying effect %d to %s", effect.effect, effect.region.c_str());
       amp->lights->applyEffect(effect);
     }
