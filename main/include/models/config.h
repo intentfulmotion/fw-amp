@@ -6,8 +6,10 @@
 #include <models/light.h>
 #include <models/motion.h>
 #include <models/battery.h>
+#include <models/balance.h>
 
-struct DeviceInfo {
+struct DeviceInfo
+{
   std::string manufacturer = "Intentful Motion, Inc.";
   std::string hardwareVersion;
   std::string serialNumber;
@@ -15,15 +17,18 @@ struct DeviceInfo {
   std::string deviceName;
 };
 
-struct AmpConfig {
+struct AmpConfig
+{
   MotionConfig motion;
   LightsConfig lights;
   BatteryConfig battery;
-  std::map<std::string, std::vector<LightingParameters>*> actions;
+  BalanceConfig balance;
+  std::map<std::string, std::vector<LightingParameters> *> actions;
   DeviceInfo info;
 };
 
-enum ConfigControl : uint8_t {
+enum ConfigControl : uint8_t
+{
   ReceiveStart = 0x01,
   TransmitStart
 };

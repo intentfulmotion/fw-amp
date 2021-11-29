@@ -1,7 +1,7 @@
 #pragma once
 #include <interfaces/lifecycle.h>
+#include <interfaces/power-listener.h>
 
-class Application {
-  public:
-    std::vector<LifecycleBase> getDependencies();
+class Application : public LifecycleBase, public PowerListener
+{
 };

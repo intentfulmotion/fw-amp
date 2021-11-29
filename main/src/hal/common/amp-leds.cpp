@@ -2,22 +2,28 @@
 
 FreeRTOS::Semaphore AmpLeds::ledsReady = FreeRTOS::Semaphore("leds");
 
-void AmpLeds::init() {
+void AmpLeds::init()
+{
   // setup the status led
   status = new OneWireLED(NeoPixel, STATUS_LED, 0, 1);
   (*status)[0] = lightOff;
 }
 
-void AmpLeds::deinit() {
+void AmpLeds::deinit()
+{
   delay(50);
 }
 
-void AmpLeds::process() {
+void AmpLeds::process()
+{
   ledsReady.wait();
-  if (dirty) {
+  if (dirty)
+  {
     status->show();
-    for (auto pair : channels) {
-      if (pair.second != nullptr) {
+    for (auto pair : channels)
+    {
+      if (pair.second != nullptr)
+      {
         if (pair.second->wait(5))
           pair.second->show();
       }
@@ -43,32 +49,35 @@ void AmpLeds::process() {
   // }
 }
 
-LightController* AmpLeds::addLEDStrip(LightChannel data) {
+LightController *AmpLeds::addLEDStrip(LightChannel data)
+{
   ledsReady.wait();
   ledsReady.take();
-  ESP_LOGD(LEDS_TAG,"Adding type %d strip on channel %d with %d LEDs", data.type, data.channel, data.leds);
+  ESP_LOGD(LEDS_TAG, "Adding type %d strip on channel %d with %d LEDs", data.type, data.channel, data.leds);
   AddressableLED *controller = nullptr;
 
-  if (channels.find(data.channel) != channels.end()) {
+  if (channels.find(data.channel) != channels.end())
+  {
     // remove old controller
     auto old = channels[data.channel];
     delete old;
   }
 
-  switch(data.type) {
-    case LEDType::NeoPixel:
-    case LEDType::WS2813:
-    case LEDType::SK6812:
-      controller = new OneWireLED(data.type, lightMap[data.channel], data.channel, data.leds);
-      break;
-    case LEDType::SK6812_RGBW:
-      controller = new OneWireLED(data.type, lightMap[data.channel], data.channel, data.leds, PixelOrder::GRBW);
-      break;
-    case LEDType::DotStar:
-      controller = new TwoWireLED(HSPI_HOST, data.leds, lightMap[data.channel], lightMap[data.channel + 4]);
-      break;
-    default:
-      return nullptr;
+  switch (data.type)
+  {
+  case LEDType::NeoPixel:
+  case LEDType::WS2813:
+  case LEDType::SK6812:
+    controller = new OneWireLED(data.type, lightMap[data.channel], data.channel, data.leds);
+    break;
+  case LEDType::SK6812_RGBW:
+    controller = new OneWireLED(data.type, lightMap[data.channel], data.channel, data.leds, PixelOrder::GRBW);
+    break;
+  case LEDType::DotStar:
+    controller = new TwoWireLED(HSPI_HOST, data.leds, lightMap[data.channel], lightMap[data.channel + 4]);
+    break;
+  default:
+    return nullptr;
   }
 
   for (uint16_t i = 0; i < data.leds; i++)
@@ -83,13 +92,15 @@ LightController* AmpLeds::addLEDStrip(LightChannel data) {
   return controller;
 }
 
-void AmpLeds::setStatus(Color color) {
+void AmpLeds::setStatus(Color color)
+{
   (*status)[0] = gammaCorrected(color);
   dirty = true;
   // statusDirty = true;
 }
 
-void AmpLeds::render(bool all, int8_t channel) {
+void AmpLeds::render(bool all, int8_t channel)
+{
   dirty = true;
   // statusDirty = true;
 
@@ -102,13 +113,16 @@ void AmpLeds::render(bool all, int8_t channel) {
   //   dirty[channel] = true;
 }
 
-Color AmpLeds::gammaCorrected(Color color) {
+Color AmpLeds::gammaCorrected(Color color)
+{
   return Color(gamma8[color.r], gamma8[color.g], gamma8[color.b]);
 }
 
-void AmpLeds::setPixel(uint8_t channelNumber, Color color, uint16_t index) {
+void AmpLeds::setPixel(uint8_t channelNumber, Color color, uint16_t index)
+{
   ledsReady.wait();
-  if (index >= leds[channelNumber]) {
+  if (index >= leds[channelNumber])
+  {
     ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", index, channelNumber, leds[channelNumber]);
     return;
   }
@@ -120,9 +134,11 @@ void AmpLeds::setPixel(uint8_t channelNumber, Color color, uint16_t index) {
   (*controller)[index] = color;
 }
 
-Color AmpLeds::getPixel(uint8_t channelNumber, uint16_t index) {
+Color AmpLeds::getPixel(uint8_t channelNumber, uint16_t index)
+{
   ledsReady.wait();
-  if (index >= leds[channelNumber]) {
+  if (index >= leds[channelNumber])
+  {
     ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", index, channelNumber, leds[channelNumber]);
     return lightOff;
   }
@@ -134,16 +150,21 @@ Color AmpLeds::getPixel(uint8_t channelNumber, uint16_t index) {
   return (*controller)[index];
 }
 
-void AmpLeds::setPixels(uint8_t channelNumber, Color color, uint16_t start, uint16_t end) {
+void AmpLeds::setPixels(uint8_t channelNumber, Color color, uint16_t start, uint16_t end)
+{
   ledsReady.wait();
   auto controller = channels[channelNumber];
   if (controller == nullptr)
     return;
-  
-  for (uint16_t i = start; i < end; i++) {
+
+  for (uint16_t i = start; i < end; i++)
+  {
     if (i < leds[channelNumber])
       (*controller)[i] = color;
     else
+    {
       ESP_LOGE(LEDS_TAG, "Pixel %d exceeds channel %d led count (%d)", i, channelNumber, leds[channelNumber]);
+      break;
+    }
   }
 }

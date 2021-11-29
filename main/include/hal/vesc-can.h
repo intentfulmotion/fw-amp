@@ -9,7 +9,7 @@
 #include <interfaces/motion-provider.h>
 #include <interfaces/power-provider.h>
 
-static const char* CAN_TAG = "can";
+static const char *CAN_TAG = "can";
 #define BUFFER_SIZE 65535
 
 #define RECV_STATUS_1 (uint32_t(0x0000) << 16) + (uint16_t(CAN_PACKET_STATUS) << 8) + VESC_ID
@@ -26,7 +26,8 @@ static const char* CAN_TAG = "can";
 #define RECV_FILL_RX_BUFFER_LONG_PROXY (uint32_t(0x0000) << 16) + (uint16_t(CAN_PACKET_FILL_RX_BUFFER_LONG) << 8) + BLE_PROXY_ID
 #define RECV_PROCESS_RX_BUFFER_PROXY (uint32_t(0x0000) << 16) + (uint16_t(CAN_PACKET_PROCESS_RX_BUFFER) << 8) + BLE_PROXY_ID
 
-class VescCan : public MotionProvider, public PowerProvider {
+class VescCan : public MotionProvider, public PowerProvider
+{
   TaskHandle_t canHandle;
   bool initialized;
   VescStatus status;
@@ -57,62 +58,66 @@ class VescCan : public MotionProvider, public PowerProvider {
 
   bool _autoMotion, _autoTurn, _autoOrientation;
 
-  public:
-    static VescCan* instance() { static VescCan can; return &can; }
-    VescCan();
+public:
+  static VescCan *instance()
+  {
+    static VescCan can;
+    return &can;
+  }
+  VescCan();
 
-    static void canTask(void* params);
-    void processFrame(can_message_t message);
-    void processBufferedData(uint8_t command, bool isProxyRequest);
-    void proxyIn(std::string in);
-    void proxyOut(uint8_t *data, int size, uint8_t crc1, uint8_t crc2);
-    void sendFrame(can_message_t *message);
+  static void canTask(void *params);
+  void processFrame(can_message_t message);
+  void processBufferedData(uint8_t command, bool isProxyRequest);
+  void proxyIn(std::string in);
+  void proxyOut(uint8_t *data, int size, uint8_t crc1, uint8_t crc2);
+  void sendFrame(can_message_t *message);
 
-    void parseFirmwareData(bool isProxyRequest);
-    void parseBalanceData(bool isProxyRequest);
-    void parseRealtimeData(bool isProxyRequest);
+  void parseFirmwareData(bool isProxyRequest);
+  void parseBalanceData(bool isProxyRequest);
+  void parseRealtimeData(bool isProxyRequest);
 
-    float getDirectionFromAxis();
+  float getDirectionFromAxis();
 
-    QueueHandle_t transmitQueue = NULL;
-    QueueHandle_t receiveQueue = NULL;
+  QueueHandle_t transmitQueue = NULL;
+  QueueHandle_t receiveQueue = NULL;
 
-    static FreeRTOS::Semaphore canReceive;
-    static FreeRTOS::Semaphore canTransmit;
+  static FreeRTOS::Semaphore canReceive;
+  static FreeRTOS::Semaphore canTransmit;
 
-    // motion provider
-    void addMotionListener(MotionListener listener);
-    void resetMotionDetection();
+  // motion provider
+  void addMotionListener(MotionListener listener);
+  void resetMotionDetection();
 
-    void setMotionDetection(bool enabled, AccelerationAxis axis, float brakeThreshold, float acclerationThreshold);
-    void setTurnDetection(bool enabled, bool useRelativeTurnZero, AttitudeAxis axis, float threshold);
-    void setOrientationDetection(bool enabled, Orientation orientationTrigger);
+  void setMotionDetection(bool enabled, AccelerationAxis axis, float brakeThreshold, float acclerationThreshold);
+  void setTurnDetection(bool enabled, bool useRelativeTurnZero, AttitudeAxis axis, float threshold);
+  void setOrientationDetection(bool enabled, Orientation orientationTrigger);
 
-    bool detectMotion();
-    bool detectTurning() { return false; }
-    bool detectOrientation() { return false; }
-    bool detectDirection();
+  bool detectMotion();
+  bool detectTurning() { return false; }
+  bool detectOrientation() { return false; }
+  bool detectDirection();
+  bool updateBalance();
 
-    // motion triggers
-    void triggerVehicleState(VehicleState state, bool autoMotion = false, bool autoTurn = false, bool autoOrient = false);
-    void triggerAccelerationState(AccelerationState state, bool autoMotion = false);
-    void triggerTurnState(TurnState state, bool autoTurn = false);
-    void triggerOrientationState(Orientation state, bool autoOrient = false);
+  // motion triggers
+  void triggerAccelerationState(AccelerationState state, bool autoMotion = false);
+  void triggerTurnState(TurnState state, bool autoTurn = false);
+  void triggerOrientationState(Orientation state, bool autoOrient = false);
 
-    bool isMotionDetectionEnabled();
-    bool isTurnDetectionEnabled();
-    bool isOrientationDetectionEnabled();
+  bool isMotionDetectionEnabled();
+  bool isTurnDetectionEnabled();
+  bool isOrientationDetectionEnabled();
 
-    // power status listener
-    void onPowerStatusChanged(PowerStatus status) { }
+  // power status listener
+  void onPowerStatusChanged(PowerStatus status) {}
 
-    void startup();
-    void process();
-    void shutdown(bool restart = false) {}   
+  void startup();
+  void process();
+  void shutdown(bool restart = false) {}
 
-    // motionprovider lifecycle base
-    void onPowerUp() {}
-    void onPowerDown() {}
+  // motionprovider lifecycle base
+  void onPowerUp() {}
+  void onPowerDown() {}
 };
 
 #endif

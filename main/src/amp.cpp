@@ -1,17 +1,16 @@
 #include <amp.h>
 #include <app.h>
 
-
-Lights* Amp::lights = Lights::instance();
-Updater* Amp::updater = Updater::instance();
+Lights *Amp::lights = Lights::instance();
+Updater *Amp::updater = Updater::instance();
 Config Amp::config;
 
 #ifdef MANAGES_INTERNAL_POWER
-Power* Amp::power = Power::instance();
+Power *Amp::power = Power::instance();
 #endif
 
 #ifdef HAS_INTERNAL_IMU
-MotionProvider* Amp::motion = Motion::instance();
+MotionProvider *Amp::motion = Motion::instance();
 #endif
 
 #ifdef HAS_INPUT_BUTTON
@@ -19,16 +18,17 @@ Buttons Amp::buttons;
 #endif
 
 #ifdef HAS_VESC_CAN
-VescCan* Amp::can = VescCan::instance();
-MotionProvider* Amp::motion = VescCan::instance();
-PowerProvider* Amp::power = VescCan::instance();
+VescCan *Amp::can = VescCan::instance();
+MotionProvider *Amp::motion = VescCan::instance();
+PowerProvider *Amp::power = VescCan::instance();
 #endif
 
 #ifdef BLE_ENABLED
-BluetoothLE* Amp::ble = BluetoothLE::instance();
+BluetoothLE *Amp::ble = BluetoothLE::instance();
 #endif
 
-void Amp::init() {
+void Amp::init()
+{
   // listen to power changes
   power->addPowerLevelListener(motion);
   power->addPowerLevelListener(lights);
@@ -55,7 +55,7 @@ void Amp::init() {
 #ifdef HAS_INPUT_BUTTON
   buttons.addTouchListener(lights);
   buttons.addTouchListener(power);
-  
+
 #ifdef BLE_ENABLED
   // listen to touches to start advertising
   buttons.addTouchListener(ble);
@@ -69,16 +69,18 @@ void Amp::init() {
 
   // listen to ota update status changes
   updater->addUpdateListener(lights);
-  
+
   // setup app
   app = new App(this);
   power->addLifecycleListener(app);
+  power->addPowerLevelListener(app);
 
   // setup the board
   power->startup();
 }
 
-void Amp::process() {
+void Amp::process()
+{
   // todo: move this into the app host
   // when we're powering down, we need to halt processing
 #ifdef MANAGES_INTERNAL_POWER

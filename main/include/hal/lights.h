@@ -19,13 +19,18 @@
 
 #include <hal/config.h>
 
-#define REFRESH_NEVER   0
+#define REFRESH_NEVER 0
 
-static const char* LIGHTS_TAG = "lights";
+static const char *LIGHTS_TAG = "lights";
 
 class Lights : public LifecycleBase,
-  public PowerListener, public TouchListener, public ConfigListener, 
-  public CalibrationListener, public UpdateListener, public BleListener {
+               public PowerListener,
+               public TouchListener,
+               public ConfigListener,
+               public CalibrationListener,
+               public UpdateListener,
+               public BleListener
+{
 
   AmpLeds leds;
   LightsConfig *lightsConfig;
@@ -62,6 +67,7 @@ class Lights : public LifecycleBase,
   void theaterChase(LightingParameters *params, RenderStep *step);
   void twinkle(LightingParameters *params, RenderStep *step);
   void sparkle(LightingParameters *params, RenderStep *step);
+  void battery(LightingParameters *params, RenderStep *step);
 
   TaskHandle_t renderHandle;
 
@@ -76,65 +82,71 @@ class Lights : public LifecycleBase,
 
   Color getStepColor(RenderStep *step, ColorOption option);
 
-  public:
-    Lights();
-    std::map<int, LightController*> controllers;
-    static Lights* instance() { static Lights lights; return &lights; }
-    
-    // LifecycleBase
-    void onPowerUp();
-    void onPowerDown();
+public:
+  Lights();
+  std::map<int, LightController *> controllers;
+  static Lights *instance()
+  {
+    static Lights lights;
+    return &lights;
+  }
 
-    // PowerListener
-    void onPowerStatusChanged(PowerStatus status);
-    void updateLightForPowerStatus(PowerStatus status);
+  // LifecycleBase
+  void onPowerUp();
+  void onPowerDown();
 
-    // TouchListener
-    void onTouchEvent(std::vector<TouchType> *touches) { }
-    void onTouchDown();
-    void onTouchUp();
+  // PowerListener
+  void onPowerStatusChanged(PowerStatus status);
+  void updateLightForPowerStatus(PowerStatus status);
 
-    // ConfigListener
-    void onConfigUpdated();
+  // TouchListener
+  void onTouchEvent(std::vector<TouchType> *touches) {}
+  void onTouchDown();
+  void onTouchUp();
 
-    // CalibrationListener
-    void onCalibrateXGStarted();
-    void onCalibrateXGEnded();
-    void onCalibrateMagStarted();
-    void onCalibrateMagEnded();
+  // ConfigListener
+  void onConfigUpdated();
 
-    // UpdateListener
-    void onUpdateStatusChanged(UpdateStatus status);
+  // CalibrationListener
+  void onCalibrateXGStarted();
+  void onCalibrateXGEnded();
+  void onCalibrateMagStarted();
+  void onCalibrateMagEnded();
 
-    // BleListener
-    void onAdvertisingStarted();
-    void onAdvertisingStopped();
+  // UpdateListener
+  void onUpdateStatusChanged(UpdateStatus status);
 
-    void process();
+  // BleListener
+  void onAdvertisingStarted();
+  void onAdvertisingStopped();
 
-    uint16_t getLEDCountForChannel(uint8_t channel);
-    LightRegion getLightRegion(std::string region);
-    std::map<uint8_t, LightChannel> getAvailableChannels();
-    std::map<std::string, LightRegion> getAvailableRegions();
+  void process();
 
-    void setStatus(Color color);
+  uint16_t getLEDCountForChannel(uint8_t channel);
+  LightRegion getLightRegion(std::string region);
+  std::map<uint8_t, LightChannel> getAvailableChannels();
+  std::map<std::string, LightRegion> getAvailableRegions();
 
-    void colorRegion(std::string regionName, Color color);
-    void colorRegionSection(std::string regionName, uint8_t section, Color color);
-    void colorLEDs(uint8_t channel, uint16_t led, uint16_t count, Color color);
-    void render(bool all = false, int8_t channel = -1);
+  void setStatus(Color color);
 
-    Color colorWheel(uint8_t pos);
-    Color randomColor();
+  void colorRegion(std::string regionName, Color color, int limit = NO_LIMIT);
+  void colorRegionSection(std::string regionName, uint8_t section, Color color, int limit = NO_LIMIT);
+  void colorLEDs(uint8_t channel, uint16_t led, uint16_t count, Color color, int limit = NO_LIMIT);
+  void render(bool all = false, int8_t channel = NO_LIMIT);
 
-    static void startCalibrateLight(void* params);
-    static void startUpdateLight(void *params);
-    static void startAdvertisingLight(void *params);
+  Color colorWheel(uint8_t pos);
+  Color randomColor();
 
-    void applyEffect(LightingParameters parameters);
+  static void startCalibrateLight(void *params);
+  static void startUpdateLight(void *params);
+  static void startAdvertisingLight(void *params);
 
-    static std::map<Actions, std::string> headlightActions;
-    static std::map<Actions, std::string> motionActions;
-    static std::map<Actions, std::string> turnActions;
-    static std::map<Actions, std::string> orientationActions;
+  void applyEffect(LightingParameters parameters);
+
+  static std::map<Actions, std::string> headlightActions;
+  static std::map<Actions, std::string> motionActions;
+  static std::map<Actions, std::string> turnActions;
+  static std::map<Actions, std::string> orientationActions;
+  static std::map<Actions, std::string> faultActions;
+  static std::map<Actions, std::string> batteryActions;
 };

@@ -2,34 +2,41 @@
 
 FreeRTOS::Semaphore BluetoothLE::bleReady = FreeRTOS::Semaphore("ble");
 
-BluetoothLE::BluetoothLE() {
+BluetoothLE::BluetoothLE()
+{
   touchEventQueue = xQueueCreate(10, sizeof(std::vector<TouchType>));
   bleReady.take();
 }
 
-void BluetoothLE::onPowerUp() {
+void BluetoothLE::onPowerUp()
+{
   xTaskCreatePinnedToCore(startServer, "ble-server", 4096, NULL, 3, &bleTaskHandle, 0);
 }
 
-void BluetoothLE::onPowerDown() {
+void BluetoothLE::onPowerDown()
+{
   vTaskDelete(bleTaskHandle);
 }
 
-void BluetoothLE::process() {
-  if (uxQueueMessagesWaiting(touchEventQueue)) {
+void BluetoothLE::process()
+{
+  if (uxQueueMessagesWaiting(touchEventQueue))
+  {
     xQueueReceive(touchEventQueue, &touches, 0);
 
     onTouchEvent(&touches);
   }
 
-  if (publicAdvertising && millis() - publicAdvertiseStart >= PUBLIC_ADVERTISEMENT_MS) {
+  if (publicAdvertising && millis() - publicAdvertiseStart >= PUBLIC_ADVERTISEMENT_MS)
+  {
     notifyListeners(false);
     // updateAdvertising(AmpStorage::getDeviceName(), false);
     // advertising->stop();
   }
 }
 
-void BluetoothLE::startServer(void *params) {
+void BluetoothLE::startServer(void *params)
+{
   auto ble = BluetoothLE::instance();
 
   NimBLEDevice::init("");
@@ -44,21 +51,25 @@ void BluetoothLE::startServer(void *params) {
   ble->server->setCallbacks(ble, true);
   bleReady.give();
 
-  for (;;) {
+  for (;;)
+  {
     ble->process();
     delay(1000);
   }
 }
 
-NimBLEService* BluetoothLE::createService(std::string uuid) {
+NimBLEService *BluetoothLE::createService(std::string uuid)
+{
   return server->createService(NimBLEUUID::fromString(uuid));
 }
 
-void BluetoothLE::onAuthenticationComplete(ble_gap_conn_desc *conn) {
+void BluetoothLE::onAuthenticationComplete(ble_gap_conn_desc *conn)
+{
   ESP_LOGD(BLE_TAG, "Authentication Complete - bonded: %s authenticated: %s", conn->sec_state.bonded ? "yes" : "no", conn->sec_state.authenticated ? "yes" : "no");
 }
 
-void BluetoothLE::startAdvertising() {
+void BluetoothLE::startAdvertising()
+{
   // configure advertising
   // generic outdoor sports activity
   advertising->setAppearance(5184);
@@ -71,10 +82,11 @@ void BluetoothLE::startAdvertising() {
   updateAdvertising(AmpStorage::getDeviceName(), false);
 }
 
-void BluetoothLE::updateAdvertising(std::string name, bool publicAdvertise) {
+void BluetoothLE::updateAdvertising(std::string name, bool publicAdvertise)
+{
   advertising->stop();
 
-  ESP_LOGD(BLE_TAG,"Updating advertising - name: %s, %s", name.c_str(), publicAdvertise ? "public" : "private");
+  ESP_LOGD(BLE_TAG, "Updating advertising - name: %s, %s", name.c_str(), publicAdvertise ? "public" : "private");
   NimBLEAdvertisementData data;
   // data.setCompleteServices(NimBLEUUID::fromString(vehicleServiceUUID));
   data.setCompleteServices(NimBLEUUID::fromString(vescServiceUUID));
@@ -87,7 +99,8 @@ void BluetoothLE::updateAdvertising(std::string name, bool publicAdvertise) {
   advertising->start();
 }
 
-void BluetoothLE::onConnect(NimBLEServer *server, ble_gap_conn_desc *desc) {
+void BluetoothLE::onConnect(NimBLEServer *server, ble_gap_conn_desc *desc)
+{
   // if we're not publicly advertising, let's see if we've previously bonded
   // if not, disconnect the device
   auto addr = desc->peer_id_addr.val;
@@ -116,27 +129,32 @@ void BluetoothLE::onConnect(NimBLEServer *server, ble_gap_conn_desc *desc) {
   advertising->start();
 }
 
-void BluetoothLE::onDisconnect(NimBLEServer *server) {
+void BluetoothLE::onDisconnect(NimBLEServer *server)
+{
   advertising->start();
 }
 
-void BluetoothLE::onTouchEvent(std::vector<TouchType> *touches) {
-  if (touches->size() == 3) {
+void BluetoothLE::onTouchEvent(std::vector<TouchType> *touches)
+{
+  if (touches->size() == 3)
+  {
     notifyListeners(true);
     updateAdvertising(AmpStorage::getDeviceName(), true);
     // NimBLEDevice::setSecurityAuth(true, true, true);
   }
 }
 
-void BluetoothLE::addAdvertisingListener(BleListener *listener) {
+void BluetoothLE::addAdvertisingListener(BleListener *listener)
+{
   listeners.push_back(listener);
 }
 
-void BluetoothLE::notifyListeners(bool isPublic) {
+void BluetoothLE::notifyListeners(bool isPublic)
+{
   publicAdvertising = isPublic;
   publicAdvertiseStart = millis();
 
   for (auto listener : listeners)
     if (listener->advertisingQueue != NULL)
-      xQueueSend(listener->advertisingQueue, &isPublic, 0);
+      xQueueSendToBack(listener->advertisingQueue, &isPublic, 0);
 }

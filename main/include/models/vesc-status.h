@@ -1,32 +1,35 @@
 #pragma once
 #include <string>
 
-struct VescFirmwareVersion {
-  uint8_t major;
-  uint8_t minor;
-  std::string name;
+struct VescFirmwareVersion
+{
+	uint8_t major;
+	uint8_t minor;
+	std::string name;
 };
 
-struct VescRealtimeFrame {
-  double erpm;
-  double current;
-  double dutyCycle;
-  double ampHours;
-  double ampHoursCharged;
-  double wattHours;
-  double wattHoursCharged;
-  double mosfetTemp;
-  double motorTemp;
-  double totalCurrentIn;
-  double pidPosition;
-  double inputVoltage;
-  double tachometer;
-  double tachometerAbsolute;
-  int fault;
-  int timestamp;
+struct VescRealtimeFrame
+{
+	double erpm;
+	double current;
+	double dutyCycle;
+	double ampHours;
+	double ampHoursCharged;
+	double wattHours;
+	double wattHoursCharged;
+	double mosfetTemp;
+	double motorTemp;
+	double totalCurrentIn;
+	double pidPosition;
+	double inputVoltage;
+	double tachometer;
+	double tachometerAbsolute;
+	int fault;
+	int timestamp;
 };
 
-typedef enum {
+typedef enum
+{
 	STARTUP = 0,
 	RUNNING,
 	RUNNING_TILTBACK_DUTY,
@@ -39,35 +42,39 @@ typedef enum {
 	FAULT_SWITCH_FULL,
 	FAULT_DUTY,
 	FAULT_STARTUP
-} BalanceState;
+} VescBalanceState;
 
-typedef enum {
+typedef enum
+{
 	OFF = 0,
 	HALF,
 	ON
-} SwitchState;
+} VescSwitchState;
 
-struct VescBalanceFrame {
-  double pidOutput;
-  double pitch;
-  double roll;
-  double loopTime;
-  double motorCurrent;
-  double motorPosition;
-  BalanceState balanceState;
-  SwitchState switchState;
-  double adc1;
-  double adc2;
-  int timestamp;
+struct VescBalanceFrame
+{
+	double pidOutput;
+	double pitch;
+	double roll;
+	double loopTime;
+	double motorCurrent;
+	double motorPosition;
+	VescBalanceState balanceState;
+	VescSwitchState switchState;
+	double adc1;
+	double adc2;
+	int timestamp;
 };
 
-struct VescStatus {
-  VescFirmwareVersion firmwareVersion;
-  VescRealtimeFrame realtime;
-  VescBalanceFrame balance;
+struct VescStatus
+{
+	VescFirmwareVersion firmwareVersion;
+	VescRealtimeFrame realtime;
+	VescBalanceFrame balance;
 };
 
-typedef enum {
+typedef enum
+{
 	CAN_PACKET_SET_DUTY = 0,
 	CAN_PACKET_SET_CURRENT,
 	CAN_PACKET_SET_CURRENT_BRAKE,

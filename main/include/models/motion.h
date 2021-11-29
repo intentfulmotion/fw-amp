@@ -5,27 +5,31 @@
 #include <string>
 #include <cstring>
 
-enum IMUState : uint8_t {
+enum IMUState : uint8_t
+{
   IMU_Error = 0,
   IMU_Disabled,
   IMU_LowPower,
   IMU_Normal,
 };
 
-enum AccelerationState : uint8_t {
+enum AccelerationState : uint8_t
+{
   Neutral = 0,
   Braking,
   Accelerating
 };
 
-enum TurnState : uint8_t {
+enum TurnState : uint8_t
+{
   Center = 0,
   Left,
   Right,
   Hazard
 };
 
-enum Orientation : uint8_t {
+enum Orientation : uint8_t
+{
   UnknownSideUp,
   TopSideUp,
   BottomSideUp,
@@ -35,82 +39,112 @@ enum Orientation : uint8_t {
   BackSideUp
 };
 
-enum Direction : uint8_t {
+enum Direction : uint8_t
+{
   Forward,
   Backward
 };
 
-struct VehicleState {
+struct BalanceState
+{
+  bool faultLeft;
+  bool faultRight;
+  VescBalanceState operatingState;
+};
+
+struct VehicleState
+{
   AccelerationState acceleration;
   TurnState turn;
   Orientation orientation;
   Direction direction;
+  BalanceState balance;
 
-  VehicleState& operator=(VehicleState const &other) {
+  VehicleState &operator=(VehicleState const &other)
+  {
     std::memcpy(&acceleration, &other.acceleration, sizeof(AccelerationState));
     std::memcpy(&turn, &other.turn, sizeof(TurnState));
     std::memcpy(&orientation, &other.orientation, sizeof(Orientation));
     std::memcpy(&direction, &other.direction, sizeof(Direction));
+    std::memcpy(&balance, &other.balance, sizeof(BalanceState));
     return *this;
   }
 };
 
-enum CalibrationState : uint8_t {
+enum CalibrationState : uint8_t
+{
   Started = 0,
   Ended = 1
 };
 
-inline bool operator==(const VehicleState& lhs, const VehicleState& rhs) {
-  return lhs.acceleration == rhs.acceleration && lhs.turn == rhs.turn && lhs.orientation == rhs.orientation;
+inline bool operator==(const BalanceState &lhs, const BalanceState &rhs)
+{
+  return lhs.faultLeft == rhs.faultLeft && lhs.faultRight == rhs.faultRight && lhs.operatingState == rhs.operatingState;
 }
 
-inline bool operator!=(const VehicleState& lhs, const VehicleState& rhs) {
-  return lhs.acceleration != rhs.acceleration || lhs.turn != rhs.turn || lhs.orientation != rhs.orientation;
+inline bool operator!=(const BalanceState &lhs, const BalanceState &rhs)
+{
+  return lhs.faultLeft != rhs.faultLeft || lhs.faultRight != rhs.faultRight || lhs.operatingState != rhs.operatingState;
+}
+
+inline bool operator==(const VehicleState &lhs, const VehicleState &rhs)
+{
+  return lhs.acceleration == rhs.acceleration && lhs.turn == rhs.turn && lhs.orientation == rhs.orientation && lhs.balance == rhs.balance;
+}
+
+inline bool operator!=(const VehicleState &lhs, const VehicleState &rhs)
+{
+  return lhs.acceleration != rhs.acceleration || lhs.turn != rhs.turn || lhs.orientation != rhs.orientation || lhs.balance != rhs.balance;
 }
 
 static std::map<AccelerationState, std::string> AccelerationStateMap = {
-  { Braking, "Braking" },
-  { Accelerating, "Accelerating" },
-  { Neutral, "Neutral" }
-};
+    {Braking, "Braking"},
+    {Accelerating, "Accelerating"},
+    {Neutral, "Neutral"}};
 
 static std::map<TurnState, std::string> TurnStateMap = {
-  { Left, "Left" },
-  { Right, "Right" },
-  { Center, "Center" },
-  { Hazard, "Hazard" }
-};
+    {Left, "Left"},
+    {Right, "Right"},
+    {Center, "Center"},
+    {Hazard, "Hazard"}};
 
 static std::map<Orientation, std::string> OrientationMap = {
-  { UnknownSideUp, "Unknown Orientation" },
-  { TopSideUp, "Top Side Up" },
-  { BottomSideUp, "Bottom Side Up" },
-  { LeftSideUp, "Left Side Up" },
-  { RightSideUp, "Right Side Up" },
-  { FrontSideUp, "Front Side Up" },
-  { BackSideUp, "Back Side Up" },
+    {UnknownSideUp, "Unknown Orientation"},
+    {TopSideUp, "Top Side Up"},
+    {BottomSideUp, "Bottom Side Up"},
+    {LeftSideUp, "Left Side Up"},
+    {RightSideUp, "Right Side Up"},
+    {FrontSideUp, "Front Side Up"},
+    {BackSideUp, "Back Side Up"},
 };
 
-struct Vector3D {
+struct Vector3D
+{
   float x = 0.0f;
   float y = 0.0f;
   float z = 0.0f;
 
-  float& operator[](int index) {
-    assert(index >=0 && index < 3);
-    if (index == 0) return x;
-    else if (index == 1) return y;
-    else return z;
+  float &operator[](int index)
+  {
+    assert(index >= 0 && index < 3);
+    if (index == 0)
+      return x;
+    else if (index == 1)
+      return y;
+    else
+      return z;
   }
 
-  Vector3D& operator-(Vector3D const &other) {
+  Vector3D &operator-(Vector3D const &other)
+  {
     this->x = this->x - other.x;
     this->y = this->y - other.y;
     this->z = this->z - other.z;
     return *this;
   }
 
-  Vector3D& operator=(Vector3D const &other) {
+  Vector3D &operator=(Vector3D const &other)
+  {
     std::memcpy(&x, &other.x, sizeof(float));
     std::memcpy(&y, &other.y, sizeof(float));
     std::memcpy(&z, &other.z, sizeof(float));
@@ -118,7 +152,8 @@ struct Vector3D {
   }
 };
 
-enum AccelerationAxis : uint8_t {
+enum AccelerationAxis : uint8_t
+{
   X_Pos = 0,
   X_Neg,
   Y_Pos,
@@ -127,7 +162,8 @@ enum AccelerationAxis : uint8_t {
   Z_Neg
 };
 
-enum AttitudeAxis : uint8_t {
+enum AttitudeAxis : uint8_t
+{
   Roll = 0,
   Roll_Invert,
   Pitch,
@@ -136,12 +172,14 @@ enum AttitudeAxis : uint8_t {
   Yaw_Invert
 };
 
-enum DirectionTrigger : uint8_t {
+enum DirectionTrigger : uint8_t
+{
   Acceleration,
   Attitude
 };
 
-struct MotionConfig {
+struct MotionConfig
+{
   bool autoOrientation;
   bool autoMotion;
   bool autoTurn;
